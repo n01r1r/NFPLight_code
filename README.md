@@ -36,22 +36,23 @@ python real.py --save_root ./results/real --test_data_root ./input_data/real_dat
 # Citation
 If you use our code or pretrained models, please cite as following:
 ```
-@inproceedings{10.1145/3757377.3763905,
-author = {Wang, Li and Zhao, Jiajun and Zhang, Lianghao and Gao, Fangzhou and Zhang, Jiawan},
-title = {EBREnv: SVBRDF Estimation in Uncontrolled Environment Lighting via Exemplar-Based Representation},
-year = {2025},
-isbn = {9798400721373},
+@article{10.1145/3687978,
+author = {Wang, Li and Zhang, Lianghao and Gao, Fangzhou and Kang, Yuzhen and Zhang, Jiawan},
+title = {NFPLight:  Deep SVBRDF Estimation via the Combination of Near and Far Field Point Lighting},
+year = {2024},
+issue_date = {December 2024},
 publisher = {Association for Computing Machinery},
 address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3757377.3763905},
-doi = {10.1145/3757377.3763905},
-abstract = {Recovering spatial-varying bi-directional reflectance distribution function (SVBRDF) from as few as possible captured images has been a challenging task in computer graphics. Benefiting from the co-located flashlight-camera capture strategy and data-driven priors, SVBRDF can be estimated from few input images. However, this capture strategy usually requires a controllable darkroom environment, ensuring the flashlight is a single light source. It is often impractical during on-site capture in real-world scenarios. To support SVBRDF estimation in an uncontrolled environment, the key challenge lies in the high-precise estimation of unknown environment lighting and its effective utilization on SVBRDF recovery. To address this issue, we proposed a novel exemplar-based environment lighting representation, which is easier to use for neural networks. These exemplars are a set of rendered images of selected materials under the environment lighting. By embedding the rendering process, our approach transforms environment lighting represented in the spherical domain into the sample-surface domain, thereby achieving the domain alignment with input images. This significantly reduces the network’s learning burden, resulting in a more precise environment lighting estimation. Furthermore, after lighting prediction, we also present a dominant lighting extraction algorithm and an adaptive exemplar selection algorithm to enhance the guidance of environment lighting in SVBRDF estimation. Finally, considering the distant contribution of environment lighting and point lighting to SVBRDF recovery, we proposed a well-designed cascaded network. Quantitative assessments and qualitative analysis have demonstrated that our method achieves superior SVBRDF estimations compared to previous approaches. The source code will be released.},
-booktitle = {Proceedings of the SIGGRAPH Asia 2025 Conference Papers},
-articleno = {163},
-numpages = {10},
-keywords = {Material Reflectance Modeling, SVBRDF, Deep Learning, Environment Lighting},
-location = {
-},
-series = {SA Conference Papers '25}
+volume = {43},
+number = {6},
+issn = {0730-0301},
+url = {https://doi.org/10.1145/3687978},
+doi = {10.1145/3687978},
+abstract = {Recovering spatial-varying bi-directional reflectance distribution function (SVBRDF) from a few hand-held captured images has been a challenging task in computer graphics. Benefiting from the learned priors from data, single-image methods can obtain plausible SVBRDF estimation results. However, the extremely limited appearance information in a single image does not suffice for high-quality SVBRDF reconstruction. Although increasing the number of inputs can improve the reconstruction quality, it also affects the efficiency of real data capture and adds significant computational burdens. Therefore, the key challenge is to minimize the required number of inputs, while keeping high-quality results. To address this, we propose maximizing the effective information in each input through a novel co-located capture strategy that combines near-field and far-field point lighting. To further enhance effectiveness, we theoretically investigate the inherent relation between two images. The extracted relation is strongly correlated with the slope of specular reflectance, substantially enhancing the precision of roughness map estimation. Additionally, we designed the registration and denoising modules to meet the practical requirements of hand-held capture. Quantitative assessments and qualitative analysis have demonstrated that our method achieves superior SVBRDF estimations compared to previous approaches. All source codes will be publicly released.},
+journal = {ACM Trans. Graph.},
+month = nov,
+articleno = {274},
+numpages = {11},
+keywords = {material reflectance modeling, SVBRDF, deep learning, rendering}
 }
 ```
