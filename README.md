@@ -32,7 +32,7 @@ The model is trained at a resolution of 256, but the proposed method supports in
 to produce higher-resolution results.
 ```Python
 python real.py
-  --save_root ./results/syn
+  --save_root ./results/real
   --test_data_root ./input_data/real_data
   --loadpath_network_g ./checkpoints/net_g_real.pth
   --loadpath_network_denoise ./checkpoints/net_denoise_real.pth
