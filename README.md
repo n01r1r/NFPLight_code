@@ -21,10 +21,7 @@ pip install -r requirements.txt
 This script tests the method on synthetic data under ideal capture settings, 
 aiming to evaluate its theoretical upper-bound performance.
 ```Python
-python test.py
-  --save_root ./results/syn
-  --test_data_root ./input_data/syn_data
-  --loadpath_network_g ./checkpoints/net_g_syn.pth
+python test.py --save_root ./results/syn --test_data_root ./input_data/syn_data --loadpath_network_g ./checkpoints/net_g_syn.pth
 ```
 
 - Test on real data
@@ -33,12 +30,7 @@ This script incorporates a denoising network for real material capture.
 The model is trained at a resolution of 256, but the proposed method supports inference at 1024
 to produce higher-resolution results.
 ```Python
-python real.py
-  --save_root ./results/real
-  --test_data_root ./input_data/real_data
-  --loadpath_network_g ./checkpoints/net_g_real.pth
-  --loadpath_network_denoise ./checkpoints/net_denoise_real.pth
-  --image_size 1024
+python real.py --save_root ./results/real --test_data_root ./input_data/real_data --loadpath_network_g ./checkpoints/net_g_real.pth --loadpath_network_denoise ./checkpoints/net_denoise_real.pth --image_size 1024
 ```
 
 # Citation
