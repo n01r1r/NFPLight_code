@@ -4,7 +4,7 @@ This is the source code of research paper "NFPLight: Deep SVBRDF Estimation via 
 ![Alt](Teaser.jpg)
 
 # Pretrained models
-Our pretrained models can be downloaded from [here](https://drive.google.com/drive/folders/1t7nnzP2htXwPQVajYdHqlv-MyN_zYPBb?usp=drive_link). Unzip these files to 'checkpoints' folder.
+Our pretrained models can be downloaded from [here](https://drive.google.com/drive/folders/171Krs3DUGqI-IkejbtOsbPtrKpOlds2p?usp=sharing). Unzip these files to 'checkpoints' folder.
 
 # Dependencies
 ```python
