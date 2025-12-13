@@ -8,7 +8,9 @@ Our pretrained models can be downloaded from [here](https://drive.google.com/dri
 
 # Dependencies
 ```python
-conda create --name new_env --file requirements.txt
+conda create -n nfp python=3.10
+conda activate nfp
+pip install -r requirements.txt
 ```
 - Python (tested on 3.10)
 - Pytorch (tested on 2.9.1+CUDA 12.8)
