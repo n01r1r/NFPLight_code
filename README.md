@@ -15,6 +15,8 @@ conda create --name new_env --file requirements.txt
 
 # Usage
 - Test on synthetic data
+This script tests the method on synthetic data under ideal capture settings, 
+aiming to evaluate its theoretical upper-bound performance.
 ```Python
 python test.py
   --save_root ./results/syn
@@ -23,6 +25,9 @@ python test.py
 ```
 
 - Test on real data
+This script incorporates a denoising network for real material capture.
+The model is trained at a resolution of 256, but the proposed method supports inference at 1024
+to produce higher-resolution results.
 ```Python
 python real.py
   --save_root ./results/syn
