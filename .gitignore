@@ -1,0 +1,36 @@
+# Local model outputs and resumable training state.
+/checkpoints/
+/results/
+/data/fabric_native256_v1/
+*.pth
+*.pt
+*.ckpt
+
+# Local capture data and generated evaluation outputs.
+/input_data/raw_pairs/
+/input_data/capture_*/
+
+# Reports, caches, temporary files, and agent/harness state.
+/.cache/
+/.tmp_*
+/.work/
+/.fork-work/
+/.venv/
+/venv/
+/.claude/
+/.codex/
+/.agents/
+/.env
+/.env.*
+/harness/
+/report/
+/reports/
+__pycache__/
+*.py[cod]
+*.log
+
+# Local experiment automation and scratch files.
+/run_*.sh
+/run_*.ps1
+/watch_*.ps1
+/supervise_*.py

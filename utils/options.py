@@ -1,4 +1,3 @@
-import yaml
 from collections import OrderedDict
 from os import path as osp
 
@@ -9,6 +8,7 @@ def ordered_yaml():
     Returns:
         yaml Loader and Dumper.
     """
+    import yaml
     try:
         from yaml import CDumper as Dumper
         from yaml import CLoader as Loader
@@ -38,6 +38,7 @@ def parse(opt_path, root_path, is_train=True):
     Returns:
         (dict): Options.
     """
+    import yaml
     with open(opt_path, mode='r') as f:
         Loader, _ = ordered_yaml()
         opt = yaml.load(f, Loader=Loader)

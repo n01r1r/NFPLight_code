@@ -4,11 +4,31 @@ from os import path as osp
 import os
 from data.dataset import SynDataset
 from model.nfplight_model import NFPLightModel
+from model.nfplight_model import checkpoint_feature_version
+from model.normal_head import checkpoint_normal_head
 
 
 def makedirs(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def validate_synthetic_checkpoint(loadpath):
+    """Reject Fabric-only contracts before entering the synthetic path."""
+    checkpoint = torch.load(loadpath, map_location='cpu', weights_only=False)
+    feature_version = checkpoint_feature_version(checkpoint)
+    normal_head = checkpoint_normal_head(checkpoint)
+    if feature_version == 'raw_calibrated_v2':
+        raise ValueError(
+            'raw_calibrated_v2 Fabric checkpoints require real.py '
+            '--estimator-family matsynth21 with linear capture inputs'
+        )
+    if normal_head != 'xyz':
+        raise ValueError(
+            f'normal head {normal_head!r} is not supported by test.py; '
+            'use real.py --estimator-family matsynth21'
+        )
+    return feature_version, normal_head
     
 def parse_options():
     parser = argparse.ArgumentParser()
@@ -44,6 +64,8 @@ def create_dataloader(args):
 
 def test_pipeline(args):
     torch.backends.cudnn.benchmark = True
+
+    validate_synthetic_checkpoint(args.loadpath_network_g)
 
 
     # create train and validation dataloaders

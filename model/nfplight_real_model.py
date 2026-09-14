@@ -101,9 +101,13 @@ class NFPLightModel():
         self.net_denoise.eval()
         self.net_g.eval()
         with torch.no_grad():
-            denoise_inputs = torch.cat([self.inputs,self.log_normalization(self.inputs)],1)*2-1
-            pred_denoise_img = self.net_denoise(denoise_inputs)
-            pred_denoise_img = torch.clip(pred_denoise_img,0,1)
+            if getattr(self.args, 'no_denoise', False):
+                # denoise excluded (사용 금지): feed raw captures straight through
+                pred_denoise_img = torch.clip(self.inputs, 0, 1)
+            else:
+                denoise_inputs = torch.cat([self.inputs,self.log_normalization(self.inputs)],1)*2-1
+                pred_denoise_img = self.net_denoise(denoise_inputs)
+                pred_denoise_img = torch.clip(pred_denoise_img,0,1)
             near_img, far_img = torch.split(pred_denoise_img,[3,3],1)
             scale = torch.mean(near_img[:,:,int(self.args.image_size/2)-10:int(self.args.image_size/2)+10,int(self.args.image_size/2)-10:int(self.args.image_size/2)+10])/torch.clip(torch.mean(far_img[:,:,int(self.args.image_size/2)-10:int(self.args.image_size/2)+10,int(self.args.image_size/2)-10:int(self.args.image_size/2)+10]),min=1e-5)
             # scale = torch.where(scale<6 or scale>12,torch.ones_like(scale)*9,scale)

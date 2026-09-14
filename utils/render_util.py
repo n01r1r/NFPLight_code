@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import math
-from urllib.parse import uses_params
-from matplotlib.pyplot import axis
 import numpy as np
 import random
-from regex import D
 import torch
 import os
 
-from torch.functional import norm
 from utils import img2tensor
 
-from torch._C import device
 lightDistance = 2.14
 viewDistance = 2.75 # 39.98 degrees FOV
 

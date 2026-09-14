@@ -1,18 +1,14 @@
 import cv2
 import math
-from matplotlib import cm
 import numpy as np
 import os
 import torch
-from torchvision.utils import make_grid
 from PIL import Image
-import imageio
 import glob
-import cv2
 from PIL import ImageFont, ImageDraw, Image
 
 def color_map(imgs):
-    
+    from matplotlib import cm
     return cm.jet(imgs)[:,:,:3]
 
 def img2tensor(imgs, bgr2rgb=True, float32=True, normalization=False, singleChannel = False):
@@ -82,6 +78,7 @@ def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1), gamma=Fa
 
         n_dim = _tensor.dim()
         if n_dim == 4:
+            from torchvision.utils import make_grid
             img_np = make_grid(_tensor, nrow=int(math.sqrt(_tensor.size(0))), normalize=False).numpy()
             img_np = img_np.transpose(1, 2, 0)
             if rgb2bgr:
