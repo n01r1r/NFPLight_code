@@ -1,80 +1,72 @@
 # NFPLight
 
-Source for *NFPLight: Deep SVBRDF Estimation via the Combination of Near and Far Field Point Lighting*, SIGGRAPH Asia 2024. This fork retains the checkpoint-compatible estimator and Fabric training core.
+*NFPLight: Deep SVBRDF Estimation via the Combination of Near and Far Field Point Lighting* (SIGGRAPH Asia 2024)의 fork다.
+저자 checkpoint와 호환되는 estimator 및 Fabric 학습 코드를 유지한다.
 
-## Fabric DNG comparison
+## 현재 Fabric 리포트
 
-The current capture contract is [docs/CAPTURE_REQUIREMENTS.md](docs/CAPTURE_REQUIREMENTS.md), with the active author-real pipeline detailed in [docs/DNG_AUTHOR_REAL_PIPELINE_20261001.md](docs/DNG_AUTHOR_REAL_PIPELINE_20261001.md). The maintained entry point processes five supplied groups independently, in FP32, using `checkpoints/net_g_real.pth`:
+[생성 규약과 상세 데이터 흐름](docs/CAPTURE_REQUIREMENTS.md)을 기준으로 실행한다.
+문서는 한국어로 작성했으며 ISO 24495-1:2023의 공개된 간결한 언어 원칙을 적용했다.
+입력 처리, 공통 정합, 평균 조건, 광도·색 변환, 33채널 특징, 추론과 표시를 단계별로 설명한다.
 
-```powershell
-python run_fabric_capture.py --source data/260930_152732_008 --all-groups --prepare-only --out artifacts/fabric_capture_20261001_author_original
-```
+현재 경로는 5개 DNG 묶음을 독립 처리한다. 입력 처리와 추론은 FP32이며 원본 `net_g_real.pth`를 사용한다.
+광도 조건은 `both=(D-B)/(W-B)` 하나다. denoiser는 사용하지 않는다.
+양쪽 5장 모두 수치 검사와 무늬 정합 검토를 통과하면 side별로 평균한다.
+실패하면 같은 묶음의 near_00/far_00을 사용하고 이유를 기록한다.
 
-Preparation writes per-frame numeric archives, marker/crop overlays, aligned crop sheets, marker residuals and display-only frame00-versus-FP32-mean candidates. Inspect each `prepare_review.html` and its images. Averaging is eligible only when each side's five frames meet all marker RMS ≤1 px in final 256 coordinates, full valid crop support and compatible raw/photometric metadata. Texture registration still requires visual acceptance. Before inference, record the review in `root_review.json` for every group (`status: reviewed`, `texture_registration_passed`, and a non-empty note). A failed numeric or visual gate selects that group's `near_00.dng` / `far_00.dng`; passing groups average aligned RGB counts in FP32.
-
-Run inference only after all five review records are present:
-
-```powershell
-python run_fabric_capture.py --source data/260930_152732_008 --all-groups --prepared artifacts/fabric_capture_20261001_author_original
-```
-
-Each group report includes only the `both=(D-B)/(W-B)` compensation condition, the fixed 512 → crop46 → 420 → 256 geometry, the author's 33 input and 10 raw prediction channels, clipping, source/code hashes, environment and verification. The estimator uses the author's real weights without instantiating, loading, or running a denoiser; its historical copy feature slots duplicate the original RGB inputs. The root artifact directory has a combined `index.html`; each group has its own report and provenance manifest. Camera-RGB display copies apply the side's normalized WB and camera-to-linear-sRGB matrix once; already-whitebalanced RGB receives only the matrix, and linear-sRGB arrays are displayed directly. The report and preparation-review HTML have a checkbox that optionally selects separate `x^(1/2.2)` RGB preview PNGs; it defaults off and does not alter scalar/signed maps, numerical arrays or statistics. Bayer remains in NPZ/stats; its photographic selector uses the same-frame WB-demosaic RGB fallback and labels that distinction. Raw prediction arrays remain unchanged by display decoding. The preserved `best_render` outputs in `artifacts/fabric_capture_20261001_clean` remain archived; current reports exclude MatSynth/custom-weight comparison rows at the user's request.
-
-To refresh semantic feature PNGs from existing arrays, then refresh only HTML without rerunning model inference, call the display and HTML-only helpers for each group directory:
+새 실행에는 새 artifact 디렉터리를 지정한다. 아래 경로는 예시다.
 
 ```powershell
-python -c "from pathlib import Path; from capture_processing.report import regenerate_feature_gallery_only; print(regenerate_feature_gallery_only(Path('artifacts/fabric_capture_20261001_author_original/260930_152732_008')))"
-python -c "from pathlib import Path; from capture_processing.report import regenerate_capture_html_only; print(regenerate_capture_html_only(Path('artifacts/fabric_capture_20261001_author_original/260930_152732_008'), include_preserved_checkpoint=False))"
+python run_fabric_capture.py --source data/260930_152732_008 --all-groups --prepare-only --precision fp32 --out artifacts/fabric_capture_20261003_run01
 ```
 
-This reads existing NPZ arrays only for display previews, preserves numeric archives and execution manifest, and writes separate generator/asset SHA-256 records. Historical `checkpoint_comparison_display.json` files remain archived; current author reports omit the custom-weight comparison rows.
-
-When only report HTML needs a text/table refresh, use the HTML-only helper. It reads the saved manifest and array statistics, does not open NPZ files, leaves PNGs and the execution manifest unchanged, and writes `report_html_generation.json` with the HTML and generator SHA-256 values:
+각 묶음의 `prepare_review.html`을 확인하고 실제 판단을 `root_review.json`에 기록한다.
+형식과 승인 조건은 [실행 절차](docs/CAPTURE_REQUIREMENTS.md#12-실행-절차)를 따른다.
+그 다음 같은 prepared 경로에서 추론한다.
 
 ```powershell
-python -c "from pathlib import Path; from capture_processing.report import regenerate_capture_html_only; print(regenerate_capture_html_only(Path('artifacts/fabric_capture_20261001_author_original/260930_152732_008'), include_preserved_checkpoint=False))"
+python run_fabric_capture.py --source data/260930_152732_008 --all-groups --prepared artifacts/fabric_capture_20261003_run01 --precision fp32
 ```
 
-For a preparation review page, `regenerate_prepare_html_only(group_dir)` updates the WB-diagonal HTML table and only the `prepare_review.html` entry in `preparation.json.review_assets.sha256`; the existing PNGs and numeric archives remain unchanged.
+묶음별 `report.html`과 전체 `index.html`을 확인한다.
+별도 `paper_comparison`과 `--paper-equations` 옵션은 폐지했다.
+기존 best_render 수치 결과는 보존하지만 현재 비교에서 제외한다.
+표시 gamma는 기본 off이며 입력·예측 배열을 바꾸지 않는다.
+원본 DNG 폴더에 입력 PNG를 다시 만들지 않는다.
 
-Every input frame is processed afresh from Bayer uint16 through FP32 AHD, marker geometry, spatial interpolation, black/white comparison, camera WB, the embedded linear-sRGB matrix, feature construction and checkpoint inference. The original DNGs and checkpoint remain unchanged. The older `best_render` report is preserved for comparison and is not rerun.
+## 설치와 검증
 
-The old PNG, FP32 sensor ablation, compensation and one-off report scripts have been removed. See [cleanup record](docs/cleanup_removed.json). Do not regenerate input PNGs in the original DNG folder.
-
-## Environment
-
-Python 3.10/3.11 and a matching PyTorch wheel are required. Install PyTorch for the desired CPU/CUDA environment, then:
+Python 3.10/3.11과 장치에 맞는 PyTorch를 설치한 뒤 의존성을 설치한다.
+DNG 처리는 rawpy가 필요하다. 모델의 CPU 실행은 `--device cpu`로 지정한다.
 
 ```powershell
 python -m pip install -r requirements.txt
+python -m pytest tests -q -p no:cacheprovider
 ```
 
-Actual DNG unpacking requires rawpy. FP32 inference disables AMP, autocast and TF32. CUDA is optional for the 33-channel author-real estimator; runtime and memory requirements depend on the selected device.
+## Fabric 학습
 
-## Fabric training
-
-`train_fabric.py` is the maintained Fabric training entry point. Dataset preparation is available through `python -m data.fabric --help`. The estimator, feature construction, renderer, D4 augmentation and linear prediction export remain checkpoint-compatible. Old LoRA, all-category training and PNG inference entry points have been removed.
+학습 entry point는 `train_fabric.py`다. 데이터 준비는 `python -m data.fabric --help`로 확인한다.
+학습에서 만든 custom weight는 현재 DNG 리포트의 허용 추론 weight가 아니다.
 
 ```powershell
 python train_fabric.py --manifest data/fabric_native256_v1/manifest.json --out checkpoints/fabric_scratch
 ```
 
-The source contract changed during cleanup. Exact optimizer resume from checkpoints recording the previous sources is rejected; no migration whitelist was expanded. Inference using the selected unchanged checkpoint remains supported.
+이전 source 계약을 기록한 checkpoint의 exact optimizer resume는 거부한다.
+정리 과정에서 migration whitelist를 늘리지 않았다.
+학습과 재실행에는 해당 dataset과 로컬 checkpoint가 필요하다.
 
-Tests are kept in `tests/`: capture processing, AHD, capture checkpoint loading, Fabric training/resume, linear map export, and normal heads/losses. Run them together from the repository root:
+## 문서와 자료 보존
 
-```powershell
-python -m pip install pytest
-python -m pytest tests -q -p no:cacheprovider
-```
+현재 규약은 [CAPTURE_REQUIREMENTS.md](docs/CAPTURE_REQUIREMENTS.md) 한 곳에서 관리한다.
+[과거 문서와 정리 증거](docs/archive/README.md)는 당시 판단과 실행 이력을 보존한다.
+과거 문서를 현재 실행 지시로 사용하지 않는다.
 
-The three earlier training-design and red-team documents are historical records in [docs/archive/](docs/archive/); the active contract remains [docs/CAPTURE_REQUIREMENTS.md](docs/CAPTURE_REQUIREMENTS.md). Root documentation is limited to this README and AGENTS.md.
+capture data, checkpoint, cache, artifact는 로컬 자료다.
+`.git`, `checkpoints`, `results`, dataset junction의 외부 대상을 재귀 삭제하거나 이동하지 않는다.
 
-Original capture/training data was removed by the user and will be supplied separately. The preserved report documents its recorded run; executing new capture or training runs requires the corresponding data.
-
-Capture data, checkpoints, training caches and experiment outputs are local inputs/artifacts. `.git`, `checkpoints`, `results`, and `data/fabric_native256_v1` may be junctions to an external disk: never recursively clean their targets.
-
-## Citation
+## 인용
 
 ```bibtex
 @article{10.1145/3687978,
@@ -85,11 +77,3 @@ Capture data, checkpoints, training caches and experiment outputs are local inpu
   doi = {10.1145/3687978}
 }
 ```
-
-## Capture reports
-
-Use each capture's `report.html` and the combined `index.html`. The separate
-`paper_comparison` report and `--paper-equations` runner option were retired at
-the user's request on 2026-10-02. Original author inference arrays and historical
-best_render results remain preserved. Numerical equation helpers remain only for
-existing diagnostics; they do not generate a separate comparison report.

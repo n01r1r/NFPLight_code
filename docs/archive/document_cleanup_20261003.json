@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-03",
+  "action": "archive historical documents without changing bytes",
+  "files": [
+    {
+      "from": "docs/BOTH_ONLY_CAPTURE_CONTRACT_20261001.md",
+      "to": "docs/archive/BOTH_ONLY_CAPTURE_CONTRACT_20261001.md",
+      "sha256": "a1232a5c6bfda4deab4423969eeb96135b112e0fe9cd7914e59b74a6defec4a0"
+    },
+    {
+      "from": "docs/CLEANUP.md",
+      "to": "docs/archive/CLEANUP.md",
+      "sha256": "f21822d7c3e7f54c63c64e50f6455246fc5d9b129606d5d47a90a32fddc68863"
+    },
+    {
+      "from": "docs/DNG_AUTHOR_REAL_PIPELINE_20261001.md",
+      "to": "docs/archive/DNG_AUTHOR_REAL_PIPELINE_20261001.md",
+      "sha256": "795a64fcf2e9f60d400d957b5e92d845a422bc61b62516b2abf5852e6c4e5871"
+    },
+    {
+      "from": "docs/DNG_PIPELINE_AUDIT_20261001.md",
+      "to": "docs/archive/DNG_PIPELINE_AUDIT_20261001.md",
+      "sha256": "36db83aabffdd92ab3ae8ec7d1631b4268983bd1d66633bb974c52a869fabb89"
+    },
+    {
+      "from": "docs/PAPER_EQUATION_COMPARISON_20261002.md",
+      "to": "docs/archive/PAPER_EQUATION_COMPARISON_20261002.md",
+      "sha256": "375ee166319bb8677ab69cd04584d5bb0631de2cf25879c0eb2c62a5b0ae79ca"
+    },
+    {
+      "from": "docs/PSEUDO_FAR_INVERSE_SQUARE_20261002.md",
+      "to": "docs/archive/PSEUDO_FAR_INVERSE_SQUARE_20261002.md",
+      "sha256": "c1006c06d66f8e68ccfd01c8a873b0ad40ea59ac63af105ead6713da3f4aedf0"
+    },
+    {
+      "from": "docs/REPORT_NOTATION_DISPLAY_20261002.md",
+      "to": "docs/archive/REPORT_NOTATION_DISPLAY_20261002.md",
+      "sha256": "e7b7ec60c62a9298b21004e563cdd2370d11365097781bc94658bb7186b19533"
+    },
+    {
+      "from": "docs/capture_10cm30cm_burst_checks.json",
+      "to": "docs/archive/capture_10cm30cm_burst_checks.json",
+      "sha256": "5b324cdc0d2f29eecde0a3396239d1881cfcaf09158986281c3589c0452c319a"
+    },
+    {
+      "from": "docs/capture_10cm30cm_inventory.json",
+      "to": "docs/archive/capture_10cm30cm_inventory.json",
+      "sha256": "3ea2342a1d26704e3c72188dec89eaa80e3e052474a6c29442f6f4de0f768fe6"
+    },
+    {
+      "from": "docs/cleanup_removed.json",
+      "to": "docs/archive/cleanup_removed.json",
+      "sha256": "6fa231d8da26fd1394287bf7c6c894459a50a6b31da6df537fc68944cc983fc3"
+    },
+    {
+      "from": "docs/precision_reset.json",
+      "to": "docs/archive/precision_reset.json",
+      "sha256": "95588fd66325d871278ba1c6132f96740657d69ecfc291cf27cb9c508363b561"
+    },
+    {
+      "from": "docs/preservation_verification.json",
+      "to": "docs/archive/preservation_verification.json",
+      "sha256": "55746122169fb299f7b7da822cadd9d2e9a8bef2477f15eb407cdb61dfd6d0f3"
+    }
+  ]
+}

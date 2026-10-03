@@ -1949,13 +1949,13 @@ def write_capture_report(output: Path, display_ranges: dict[str, list[float]],
         snapshot.write_text(contract_path.read_text(encoding="utf-8"), encoding="utf-8")
         manifest["report"]["requirements_snapshot"] = snapshot.name
         manifest["report"]["requirements_sha256"] = sha256_file(snapshot)
-    execution_audit_path = Path("docs/DNG_PIPELINE_AUDIT_20261001.md")
+    execution_audit_path = Path("docs/archive/DNG_PIPELINE_AUDIT_20261001.md")
     if execution_audit_path.is_file():
         snapshot = output / "dng_pipeline_audit_snapshot.md"
         snapshot.write_text(execution_audit_path.read_text(encoding="utf-8"), encoding="utf-8")
         manifest["report"]["execution_audit_snapshot"] = snapshot.name
         manifest["report"]["execution_audit_sha256"] = sha256_file(snapshot)
-    active_contract_path = Path("docs/BOTH_ONLY_CAPTURE_CONTRACT_20261001.md")
+    active_contract_path = Path("docs/CAPTURE_REQUIREMENTS.md")
     if active_contract_path.is_file():
         snapshot = output / "both_only_capture_contract_snapshot.md"
         snapshot.write_bytes(active_contract_path.read_bytes())
@@ -2310,7 +2310,7 @@ def regenerate_capture_html_only(output: Path, *, include_preserved_checkpoint: 
     report_assets["static_figures"] = [
         name for name in _BOTH_ONLY_GALLERIES if (output / name).is_file()
     ]
-    contract_source = Path("docs/BOTH_ONLY_CAPTURE_CONTRACT_20261001.md")
+    contract_source = Path("docs/CAPTURE_REQUIREMENTS.md")
     contract_snapshot_sha = None
     if contract_source.is_file():
         contract_name = "both_only_capture_contract_snapshot.md"
@@ -2367,7 +2367,7 @@ def regenerate_capture_html_only(output: Path, *, include_preserved_checkpoint: 
     audit_snapshot = None
     audit_snapshot_sha = None
     if author_real:
-        audit_source = Path("docs/DNG_AUTHOR_REAL_PIPELINE_20261001.md")
+        audit_source = Path("docs/CAPTURE_REQUIREMENTS.md")
         if not audit_source.is_file():
             raise FileNotFoundError(f"author real pipeline audit is unavailable: {audit_source}")
         audit_snapshot = "author_real_pipeline_snapshot.md"
