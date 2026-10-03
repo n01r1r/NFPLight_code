@@ -1,0 +1,37 @@
+# Current capture experiment contract
+
+User decisions on 2026-10-01 supersede earlier single-pair scope; the 2026-09-30 FP32 decision remains active.
+
+- FP32 is the default and only active capture precision. FP64 experiments/results are discarded and cannot be reused.
+- Use the five newly supplied 10/30cm folders: `260818_174845_478`, `260818_175005_078`, `260923_141241_844`, `260923_161825_503`, `260930_152732_008`. Compare each folder separately; never average across folders. Do not use 15/45cm captures.
+- Process the selected near and far DNGs individually: unpack original Bayer uint16, cast exactly to float32, continuous AHD, fresh marker detection, 512 bilinear warp, crop46 to420, exact-area resize256.
+- User approved conditional burst averaging: align both sides' five frames to the near_00 marker plane using common marker corners (common near/far scale requested on 2026-10-02). Every frame must have corner RMS residual <=1 pixel in final 256 coordinates, full valid crop support, compatible raw/photometric metadata, and visually acceptable texture registration. Average aligned RGB counts in FP32 only when both sides pass; otherwise use only that folder's original near_00/far_00 source pair, spatially aligned to the same near_00 plane, and record the reason. Preserve all frame evidence; do not silently discard failed samples. This threshold measures marker registration, not guaranteed texture registration.
+- Validate each DNG CFA/shape/origin/black-white/WB/color matrix. Record each filename/hash, marker IDs/corners/homography and valid support, all alignment residuals, the averaging gate, and the final selected population.
+- AHD keeps floating RGB clipping to [0,65535] and removes integer storage/rounding, including the +0.5 Lab rounding bias. It is a continuous adaptation of LibRaw AHD; branch decisions may differ from the integer reference.
+- One active shared-input condition: `both=(D-B)/(W-B)`. Read B/W from each DNG and validate metadata. `white_only` and `neither` are retired and active photometry APIs reject them. Historical artifacts remain immutable and are filtered to `both` in current HTML views.
+- Apply camera WB normalized to a minimum positive RGB gain of1, then the embedded camera-to-linear-sRGB matrix. No gamma. Preserve unclipped values before clipping model input to [0,1].
+- User's later checkpoint instruction supersedes the previous best_render.pth selection: until the user explicitly directs otherwise, only author original weights may supply new estimator inference. The user confirmed `net_g_real.pth` real33 with original six-channel identity copies in the historical denoised slots; denoiser construction/loading/execution and denoising-image use are excluded. Custom fabric/MatSynth weights are forbidden for new inference. Synthetic21 is not part of the current run. Preserve all checkpoint files unchanged; do not extend training migration whitelists.
+- Author original SHA256: net_g_real.pth `75f23d38f1298e635d51b98cd82389117d124018cef1c2bae123689198f726b9`; net_g_syn.pth `f4dbcc5cae6025ff7a0ceba98a5835979fe1ce11b341e35de120c9c63ab5cae`; net_denoise_real.pth `40f2bfbe37bf2d7a699862537833f89621e807e78c5f2947e0f67627e5cff679`.
+- Preserve the selected original checkpoint's feature and decoder semantics. Author real's architecture requires 33 estimator features; the preserved best_render run used 21 features. Both output 10 raw prediction channels. The later no_denoise identity fallback uses original RGB copies in the real33 slots and never denoised images. Report actual optical distances separately from model constants. The previous fixed raw_calibrated_v2 gain must not be imposed on the real33 pipeline's central 20×20 region brightness ratio.
+- Capture computation and inference use FP32 with AMP/autocast/TF32 disabled. Record dtype audits, clipping ranges/fractions, source/code hashes and environment.
+- Store each frame's original/cast/demosaic/spatial arrays once, shared selected-frame arrays once, then condition arrays and display previews. Check NPZ round trips and independently verify selected source arrays and formulas. Display previews are never numerical inputs.
+- Report the selected/averaged inputs and intermediate outputs for `both`, preserving its recorded display ranges. Include relation/log-relation formulas and their input images, labeled colorbars, unscaled 256 crop views, and actual feature/prediction arrays. Compose prediction channels into semantic images rather than individual channel figures. Inspect rendered reports and the frame texture overlays before accepting averaging. Preserve marker residual evidence; do not claim exact registration or material accuracy rankings without GT.
+- User's display update: every photographic RGB preview is after normalized camera WB and the camera-to-linear-RGB matrix. Show the WB diagonal and camera matrix explicitly; never apply them twice to an already processed stage. Preserve original arrays/statistics, and label the separate display transform. Offer a display-only gamma=2.2 toggle, using exponent 1/2.2, default off. Scalar relation/feature channels and signed numerical colorbars retain their numerical meaning. Bayer mosaic samples remain available numerically; photographic previews use the corresponding WB-processed demosaic RGB.
+- Render predictions as normal XYZ encoded RGB, diffuse RGB, scalar roughness, and specular RGB maps, preserving raw 10-channel arrays and the existing display decode. Keep figure text minimal with no overlapping labels. Keep estimator stage controls beside or immediately above their images so both remain usable in the same view; retain formulas, meanings, and display contracts in expandable details.
+- Author-checkpoint replacement outputs belong under `artifacts/fabric_capture_20261001_author_original/`, with one subdirectory per capture folder and a combined HTML index. `fabric_capture_20261001_clean/` is the superseded custom-weight run, preserved for provenance. Earlier inference outputs cannot supply the author run's predictions.
+- User no longer requires MatSynth/best_render results in current reports (2026-10-02). Preserve existing numerical archives, exclude their comparison rows, and do not run new custom-weight inference.
+- Preserve original DNG/metadata and checkpoint; historical experiment outputs are not evidence for the new run. Never recursively clean protected external junction targets.
+
+## 2026-10-02 paper-equation comparison
+
+- User requests comparison against the printed paper equations. The user clarified mathematical reproduction only; denoiser exclusion remains active. See PAPER_EQUATION_COMPARISON_20261002.md for the frozen equations, adapter and validation contract.
+- MatSynth/best_render results are no longer required in current reports. Preserve old numerical results and checkpoint files, exclude their comparison rows from refreshed author reports, and use original author weights for the forthcoming comparison.
+
+## 2026-10-02 report scope update
+
+- The user retired the separate `paper_comparison` deliverable. Delete its HTML,
+  image directory and branch-only `paper_arrays.npz`; retain `report.html`, its
+  input/prediction arrays, and preparation evidence. Index links use `report.html`.
+- Do not generate the retired comparison during new capture runs. Historical
+  execution manifests describe the original execution; cleanup is recorded in
+  separate evidence. Preserve best_render numerical results without rerunning.

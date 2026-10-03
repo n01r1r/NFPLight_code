@@ -15,7 +15,51 @@ import numpy as np
 import torch
 from PIL import Image, UnidentifiedImageError
 
-from data.matsynth_crops import pack_svbrdf
+
+
+def _rot90_normal_xy(n, k):
+    """In-place remap of a normal map's in-plane (x,y) AFTER a spatial np.rot90(n,k)
+    (k CCW quarter-turns), so the vectors stay attached to the rotated surface.
+    k=2 negates both (convention-free 180deg); k=1/3 swap-with-sign, sign verified
+    against the heightfield in test_aug_rot.py. Orthogonal -> unit norm preserved."""
+    k %= 4
+    if k == 0:
+        return n
+    nx = n[..., 0].copy()
+    ny = n[..., 1].copy()
+    if k == 1:                             # y-up (OpenGL) map: verified vs heightfield
+        n[..., 0], n[..., 1] = -ny, nx
+    elif k == 2:
+        n[..., 0], n[..., 1] = -nx, -ny
+    else:                                  # k == 3
+        n[..., 0], n[..., 1] = ny, -nx
+    return n
+
+
+def pack_svbrdf(n, d, r, s, *, hflip=False, vflip=False, rot=0):
+    """Unit normals and linear d/r/s -> augmented normalized CHW ndrs tensor."""
+
+    if rot:
+        d = np.rot90(d, rot, axes=(0, 1))
+        s = np.rot90(s, rot, axes=(0, 1))
+        r = np.rot90(r, rot, axes=(0, 1))
+        n = np.rot90(n, rot, axes=(0, 1)).copy()               # writable for xy remap
+        _rot90_normal_xy(n, rot)
+
+    if hflip:
+        d, s, r, n = d[:, ::-1], s[:, ::-1], r[:, ::-1], n[:, ::-1].copy()
+        n[..., 0] = -n[..., 0]
+    if vflip:
+        d, s, r, n = d[::-1], s[::-1], r[::-1], n[::-1].copy()
+        n[..., 1] = -n[..., 1]
+
+    d = np.clip(d, 0.0, 1.0) * 2.0 - 1.0
+    s = np.clip(s, 0.0, 1.0) * 2.0 - 1.0
+    r = np.clip(r, 0.0, 1.0) * 2.0 - 1.0
+    svbrdf = np.ascontiguousarray(
+        np.concatenate([n, d, r, s], axis=-1), dtype=np.float32)   # HxWx10
+    return torch.from_numpy(svbrdf).permute(2, 0, 1)
+
 
 FORMAT = 'nfplight.fabric.native.v1'
 MAP_CHANNELS = {'normal': 3, 'diffuse': 3, 'roughness': 1, 'specular': 3}
@@ -26,7 +70,7 @@ TARGET_POLICY = {
     'invalid_render_fill': 'flat_normal_zero_diffuse_zero_F0_roughness_one',
     'roughness_floor': 0.05,
     'gt_color_encoding': 'gamma22_compat',
-    'augmentation': False,
+    'augmentation': 'none',
 }
 
 
@@ -324,13 +368,24 @@ class FabricDataset(torch.utils.data.Dataset):
     def get_crop(self, index, crop, *, rotation=0, hflip=False):
         return decode_tile(self.crops[index][crop], rotation=rotation, hflip=hflip)
 
-    def sample(self, rng, batch_size):
-        """Sample fixed cached tiles, without any spatial or photometric augmentation."""
+    def sample(self, rng, batch_size, *, augmentation='none', augmentation_rng=None):
+        """Sample cached tiles; optional D4 transforms use an independent RNG."""
         if batch_size < 1:
             raise ValueError('batch_size must be positive')
+        if augmentation not in ('none', 'd4'):
+            raise ValueError(f'unknown augmentation: {augmentation}')
+        if augmentation == 'd4' and augmentation_rng is None:
+            raise ValueError('D4 augmentation requires a dedicated augmentation_rng')
         # ponytail: synchronous mmap reads; add workers only if measured I/O stalls the GPU.
         slots = [(rng.randrange(len(self)), rng.randrange(self.manifest['crop_count']),
                   0, False) for _ in range(batch_size)]
+        if augmentation == 'd4':
+            # 4 rotations x 2 horizontal-flip states enumerate D4 uniformly.
+            transformed = []
+            for index, crop, _, _ in slots:
+                transform = augmentation_rng.randrange(8)
+                transformed.append((index, crop, transform % 4, transform >= 4))
+            slots = transformed
         batch = torch.stack([self.get_crop(i, c, rotation=r, hflip=f) for i, c, r, f in slots])
         return batch, slots
 

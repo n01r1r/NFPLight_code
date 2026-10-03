@@ -1,0 +1,222 @@
+[
+  {
+    "path": ".tmp_prepare_render_queue.py",
+    "sha256": "42158D5B8D63B5B08441A2954810BCD1FCB51F68AA99B475738E40CA95D9BDA8",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\.tmp_prepare_render_queue.py"
+  },
+  {
+    "path": "add_l1_training_to_report.py",
+    "sha256": "35D9FD69EC6FB6AF8F8A9A2C99660CA34672094C81BD51031487F5EB0D545739",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\add_l1_training_to_report.py"
+  },
+  {
+    "path": "capture_rectify.py",
+    "sha256": "1C47941B48CA7967FA05FB70C2B112C36039ABBB1D57017F2AD9FF2E4885310E",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\capture_rectify.py"
+  },
+  {
+    "path": "compare_fabric_compensation.py",
+    "sha256": "97C80BE898E4FE70BE949A38DFF02B90B64B897BE52FA22DC660D96F8D92EFE7",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\compare_fabric_compensation.py"
+  },
+  {
+    "path": "DNG_PNG_precision.md",
+    "sha256": "2C9D481931979A40E66F3B6DCBA1FEABF30CD5C8FEB343279DE97BFBC72F420C",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\DNG_PNG_precision.md"
+  },
+  {
+    "path": "dng_to_png.py",
+    "sha256": "B50993D93A977C17971A37AB5F7284079EAFF9EE9049097D63392ED64FCD4B0D",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\dng_to_png.py"
+  },
+  {
+    "path": "eval_paired_official.py",
+    "sha256": "47EE1E6839B5F2E36AAD6D534E55837BFEAD6CC5B6E9A40BC033EC6CB69765DD",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\eval_paired_official.py"
+  },
+  {
+    "path": "exp_denoise.py",
+    "sha256": "D1D728299A5DEB50B10D23948561016E5BD2E5D134916A61893E57B5E560FB64",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\exp_denoise.py"
+  },
+  {
+    "path": "FABRIC_COMPENSATION_experiment.md",
+    "sha256": "01FA302EB3E634F83EAE7A0B0B1BDD2599846B4AC4ACE6102D4E634BE96B5741",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\FABRIC_COMPENSATION_experiment.md"
+  },
+  {
+    "path": "finetune_fabric_real.py",
+    "sha256": "C38E8FADB1949C9048E7F6940FFE137E92B8455E9E591C8637F30978554C02D4",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\finetune_fabric_real.py"
+  },
+  {
+    "path": "infer_sensor_linear.py",
+    "sha256": "501E39DE5C3E5E961F2C04CD85ABD76741357A3A30FAD3F568BA40CF29821F7C",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\infer_sensor_linear.py"
+  },
+  {
+    "path": "l1_baseline_render_l1_render_phases.png",
+    "sha256": "61A50A965FDF3546DD6552BFA7B19142DBF86F4DF3AD9DE85AA2401AB7571390",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\l1_baseline_render_l1_render_phases.png"
+  },
+  {
+    "path": "make_fabric_compensation_report.py",
+    "sha256": "A2D7D3AA451C34B4BC7DBC238D612F81CF97732FEB787EA058577675EF71091E",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_fabric_compensation_report.py"
+  },
+  {
+    "path": "make_fabric_inference_report.py",
+    "sha256": "262F68EBC68B5174FAB2A9C9436C38E7BDE0E41DEE9F3533439ED241B2B61216",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_fabric_inference_report.py"
+  },
+  {
+    "path": "make_l1_baseline_report.py",
+    "sha256": "920F9CF0E0A443B34EF29AF49B799C589549A992EBF847ED72550E6E2CB153C2",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_l1_baseline_report.py"
+  },
+  {
+    "path": "make_l1_our_capture_report.py",
+    "sha256": "4F642E4D8A061979710D480CC36F5383F567E1656B6319AD52B4728D22352A67",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_l1_our_capture_report.py"
+  },
+  {
+    "path": "make_l1_training_figure.py",
+    "sha256": "5875759A1950095B04C6563B263AC55EC7B4E072597DA78D8429386DD9DF8FF3",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_l1_training_figure.py"
+  },
+  {
+    "path": "make_loss_plot.py",
+    "sha256": "375D3A7E5D94331046E3B8F920806921D86470000BE01FBC4ADFE747ACBDC305",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_loss_plot.py"
+  },
+  {
+    "path": "make_real_far_gain_report.py",
+    "sha256": "C00046EF9347FE77E64BEB39021FE4EA3E3DFE7AEFE200270CFFCA59833D5C28",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_real_far_gain_report.py"
+  },
+  {
+    "path": "make_replay_indices.py",
+    "sha256": "8F633D96AE3CF7BEBBAA0EAAEDAF2E320908D6835AE3101BE87376E6A85DBB28",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_replay_indices.py"
+  },
+  {
+    "path": "make_report_ar01.py",
+    "sha256": "0F9E69B7542EE6D14F4A4C9398E841DA57CC4000AF4FEC3359C6D7BB7331393F",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_ar01.py"
+  },
+  {
+    "path": "make_report_ar012.py",
+    "sha256": "E4736885BA76BA0C77887BB0920ECA68248AB0F42FE5F56568ECC3E7B939CDE6",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_ar012.py"
+  },
+  {
+    "path": "make_report_ar02.py",
+    "sha256": "9B3F1222417815FCDCB34CBF9945956BCEE97D6C1FC6B17DC2C4DF775486609B",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_ar02.py"
+  },
+  {
+    "path": "make_report_capture.py",
+    "sha256": "1E2764346C0476ED639A526BF6BC493CDB6EDA7F94C574C567816AA7521CF150",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_capture.py"
+  },
+  {
+    "path": "make_report_compare.py",
+    "sha256": "35C7CD2ADADAAE91B4464338C519FAC0ECED52E9BE543B9E1AB31C2242E3B932",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_compare.py"
+  },
+  {
+    "path": "make_report_ft.py",
+    "sha256": "2165EC15A713FF628E30AB761B1A3F9B5B5B1751C4857DFA1A942518BF0F207A",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_ft.py"
+  },
+  {
+    "path": "make_report_realcap.py",
+    "sha256": "D3D11DD7B4D0656F5A435D99DC75DB02225E63FF4D297A86A4E97BEE0718825F",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_realcap.py"
+  },
+  {
+    "path": "make_report_redteam.py",
+    "sha256": "6281F0E533664F6E2AA9BC75653E05798E4A056DD00536ED388D511C08741751",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_redteam.py"
+  },
+  {
+    "path": "make_report_scratch.py",
+    "sha256": "0BA3B79D94BF57F3717099B4353E57E7043BA49D60125911E912AF3D5E33CF80",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report_scratch.py"
+  },
+  {
+    "path": "make_report.py",
+    "sha256": "EC3CC498B321324183D90F1BC452420A4577953D6CD6297AB50B42DBA4050A18",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_report.py"
+  },
+  {
+    "path": "make_sensor_linear_report.py",
+    "sha256": "BD09947AF83C798B5467F1E25E9F20CCAA4765DE59153D2EFA063CC71BEBB923",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_sensor_linear_report.py"
+  },
+  {
+    "path": "make_train_plan.py",
+    "sha256": "561D7E55AB4C26D8167DAAFFC5162AE4875E96C9B805697B4C9BD9B18FF0A2F0",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\make_train_plan.py"
+  },
+  {
+    "path": "prune_checkpoint_generations.ps1",
+    "sha256": "552B07098022DA86C9320A78CE4554AEAA663861FA87403C348A5DA89C1C734A",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\prune_checkpoint_generations.ps1"
+  },
+  {
+    "path": "run_all.sh",
+    "sha256": "47AE32B787A60D1ED813E2A3B187B23E9C002B42A67941F81607E6099B0EE6EB",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\run_all.sh"
+  },
+  {
+    "path": "run_cap.sh",
+    "sha256": "E4909532AA32D02B9E3104E9FE4E3D121B4A5EC5979F5DA13EDD6A527D8A57D5",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\run_cap.sh"
+  },
+  {
+    "path": "run_full_normal_losses.ps1",
+    "sha256": "59A378814DB47F9D8AAD3EEF4552DD3A4D187B8D4632B732DA6821EB2015B364",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\run_full_normal_losses.ps1"
+  },
+  {
+    "path": "run_l1_then_phi_theta.py",
+    "sha256": "C23F4F721D4C96D059B68EBEAEC70E8057E1801D133A6878D1A2F5B7176C3092",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\run_l1_then_phi_theta.py"
+  },
+  {
+    "path": "SENSOR_LINEAR_experiment.md",
+    "sha256": "C467BE9F3A53CC3ECCDBD1599CE1EFA06A17BE38A73ADD335B70C560C0AB9E8C",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\SENSOR_LINEAR_experiment.md"
+  },
+  {
+    "path": "supervise_autoresearch.py",
+    "sha256": "48412FC69099EFB04ACF0D066BE37E2478F95F2D0037138DB4E00AD52334C032",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\supervise_autoresearch.py"
+  },
+  {
+    "path": "test_dng_to_png.py",
+    "sha256": "62D8103845060FC77DC9B816269641D9FB8185A0E7EAD7E117187BC860B04611",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\test_dng_to_png.py"
+  },
+  {
+    "path": "test_fabric_compensation.py",
+    "sha256": "D23E769B52584CE90C57A02E7F470F6E8DB86DFF6B8A0D5290F60F2E3380C413",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\test_fabric_compensation.py"
+  },
+  {
+    "path": "test_sensor_linear.py",
+    "sha256": "9ABADF118C24623281AD7105237D5C2B0C3EA162445865F3C226E35EE79113CB",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\test_sensor_linear.py"
+  },
+  {
+    "path": "watch_fabric_run.ps1",
+    "sha256": "84CFCB2A426052B53B3A252E28A980E1C9DA7A38EC4EA9984E0F853406A80625",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\watch_fabric_run.ps1"
+  },
+  {
+    "path": "watch_l1_baseline_report.ps1",
+    "sha256": "FDB4A14C367EA3952BB70301CC02A46BF1A8C567332DB28FAE04200B84EACB62",
+    "recovery": "C:\\Users\\hdy\\.codex\\visualizations\\2026\\09\\30\\01a0f214-4a44-7b61-aa0c-2a78870df452\\cleanup_recovery\\removed_scripts\\watch_l1_baseline_report.ps1"
+  }
+]

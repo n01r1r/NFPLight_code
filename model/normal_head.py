@@ -10,7 +10,6 @@ import math
 
 import torch
 
-
 POLE_EPS = 1e-6
 NORMAL_HEADS = ("xyz", "phi_theta")
 

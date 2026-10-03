@@ -1,0 +1,53 @@
+{
+  "date": "2026-09-30",
+  "active_precision": "float32",
+  "fp64_excluded": true,
+  "old_results_reused": false,
+  "stopped_fp64_session": 76769,
+  "removed_active_outputs": [
+    "artifacts/fabric_10cm30cm_fp64",
+    "artifacts/fabric_10cm30cm_fp32 (superseded four-group averaged runs)"
+  ],
+  "removed_archived_experiments": [
+    "retired_15cm45cm_fp64",
+    ".work/dng_precision_20260930",
+    ".work/fabric_compensation_20260930",
+    ".work/fabric_compensation_ahd_20260930",
+    ".work/fabric_compensation_color_20260930",
+    ".work/inference_best_render_20260919",
+    ".work/inference_best_render_far_gain_20260919",
+    ".work/inference_stage_a_20260918",
+    ".work/inference_stage_a_far_gain_20260918",
+    ".work/sensor_linear_20260930",
+    ".work/capture_processing_20260919/processed",
+    ".work/capture_processing_20260919/verification_replay",
+    ".fork-work/inference_phi_theta",
+    ".fork-work/inference_xyz"
+  ],
+  "protected_originals": [
+    "DNG and metadata",
+    "checkpoint",
+    "model and training sources",
+    "external dataset/results/git junction targets"
+  ],
+  "tests": 98,
+  "current_sample": "20260827_130311_10cm30cm_burst5 near_00/far_00 only",
+  "averaging": false,
+  "strict_fp32_backend": "SciPy single-precision LAPACK sgesv/sgetrf/sgetri/sgesdd; actual backend verified in tests",
+  "fresh_execution": {
+    "status": "passed",
+    "output": "artifacts\\fabric_10cm30cm_fp32",
+    "selected_frames": [
+      "near_00.dng",
+      "far_00.dng"
+    ],
+    "conditions": [
+      "white_only",
+      "neither",
+      "both"
+    ],
+    "independent_array_checks": true,
+    "source_checkpoint_unchanged": true,
+    "selector_items": 115
+  }
+}

@@ -1,0 +1,294 @@
+{
+  "datasets": [
+    {
+      "source": "data/20260827_130311_10cm30cm_burst5",
+      "metadata_sha256": "9fa80633c1c212f788e4ea2f817409b2dbc58573cadb67ded9f1c4dad05c311d",
+      "sides": {
+        "near": {
+          "files": [
+            {
+              "filename": "near_00.dng",
+              "sha256": "2e16ef8e6f96b1c678805f514ee41255c85c83b14994722fbbf4eb5a891e333f",
+              "bytes": 10731185
+            },
+            {
+              "filename": "near_01.dng",
+              "sha256": "fb4ec2e078c4d54c7d17784ffee4c807a284d37d15e988aa1cfc88422e403a2c",
+              "bytes": 10731233
+            },
+            {
+              "filename": "near_02.dng",
+              "sha256": "cc32e009e4c483c9796e51454c39d9168b2f93e54b484f369e0a2c80356f6fa8",
+              "bytes": 10747188
+            },
+            {
+              "filename": "near_03.dng",
+              "sha256": "c9bffbf9b500b2bf9bad8333577ec15fd834117406a6d443517bc8289be93e85",
+              "bytes": 10742373
+            },
+            {
+              "filename": "near_04.dng",
+              "sha256": "2c2c24285fb5ecb0afdb28f9c1dde4a7b67257c1293909e6c9b0e14bf3abd8ff",
+              "bytes": 10738842
+            }
+          ],
+          "optical_axis_distance_m": 0.10091781185225773,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.031245
+        },
+        "far": {
+          "files": [
+            {
+              "filename": "far_00.dng",
+              "sha256": "d52ff51ca8b0029aee041f02317aa0585ee105217b6bb200388bcf18b5b0f9d3",
+              "bytes": 9703287
+            },
+            {
+              "filename": "far_01.dng",
+              "sha256": "c52a439a03814a02eb75887f019fa9a0b8fa4f5be72f5f47a3c1f1b8400a6794",
+              "bytes": 9699667
+            },
+            {
+              "filename": "far_02.dng",
+              "sha256": "1627b4e7eb128b8f6d0b5608437967f239f0ef28d3af1fa1947dfd9ead75f36f",
+              "bytes": 9700649
+            },
+            {
+              "filename": "far_03.dng",
+              "sha256": "0f75282d4e02960c2ef50ba9a3bcc52e242d3d245e9c554bc9c176a67e2e1ce3",
+              "bytes": 9703023
+            },
+            {
+              "filename": "far_04.dng",
+              "sha256": "10b95ecd03cada31636f1c77f7b540e6a77b1db6ebb17ab3965cd7085c366b9b",
+              "bytes": 9703414
+            }
+          ],
+          "optical_axis_distance_m": 0.3088329269124555,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.031245
+        }
+      }
+    },
+    {
+      "source": "data/260818_174042_10cm30cm_burst5",
+      "metadata_sha256": "53988438df56285f779dba2af4d878c953381117ec917c566ad38e44f4f9ec00",
+      "sides": {
+        "near": {
+          "files": [
+            {
+              "filename": "near_00.dng",
+              "sha256": "00627aadeb8448b7823ede12a4cbedd89df192c1a910b1010cee7ccf72a9ba90",
+              "bytes": 11371218
+            },
+            {
+              "filename": "near_01.dng",
+              "sha256": "4f36d017fedd35c9c4cf2f455740b577860e6adaf5bc3aec1788e9876559ce71",
+              "bytes": 11335093
+            },
+            {
+              "filename": "near_02.dng",
+              "sha256": "b2efd38526db75e1d89749402efe33ccdfd746fccb395d01ef15f1e9a7870526",
+              "bytes": 11279975
+            },
+            {
+              "filename": "near_03.dng",
+              "sha256": "4b0de40420d4c7b5697d09e902efda8d4f55a77b42a5986127ab14cfa5b72b04",
+              "bytes": 11372664
+            },
+            {
+              "filename": "near_04.dng",
+              "sha256": "269792f13998305cef41c960d836dfcf247b115989d6e0741e27b35a8b461113",
+              "bytes": 11375037
+            }
+          ],
+          "optical_axis_distance_m": 0.10138601138002062,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.049862
+        },
+        "far": {
+          "files": [
+            {
+              "filename": "far_00.dng",
+              "sha256": "834d7a0a894de1ac8c2eb0964190334f27b5f07c155324b12a979d719acc743b",
+              "bytes": 9937302
+            },
+            {
+              "filename": "far_01.dng",
+              "sha256": "9d9aa77304cb60f58045a3407c1d12d1b3a6dc0db817faf69e8e7bc6b0426158",
+              "bytes": 9950890
+            },
+            {
+              "filename": "far_02.dng",
+              "sha256": "2e1fb9e43acffaa19efcbd0746a960c52ee3c107e40b1925b76951eb83cae264",
+              "bytes": 9946386
+            },
+            {
+              "filename": "far_03.dng",
+              "sha256": "523226732a3f3a57e4c533831849035b619f9d472a73ce7bf1fee2691ba0c79a",
+              "bytes": 9946719
+            },
+            {
+              "filename": "far_04.dng",
+              "sha256": "37dc1fade6d4db5787f0b2422fcfe58341216e52ef696f36e60df761184a30f9",
+              "bytes": 9953783
+            }
+          ],
+          "optical_axis_distance_m": 0.30264424644409416,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.049862
+        }
+      }
+    },
+    {
+      "source": "data/260818_174845_10cm30cm_burst5",
+      "metadata_sha256": "a9c9f4c10dfe407fc8639142d88ce92ffa6bff10224176ef7708798ac652980c",
+      "sides": {
+        "near": {
+          "files": [
+            {
+              "filename": "near_00.dng",
+              "sha256": "5a31191574c5634c02288a5a739c1b52aa7a04b2619411487f8bf9d55a09251f",
+              "bytes": 11500724
+            },
+            {
+              "filename": "near_01.dng",
+              "sha256": "1eefe89417b3d2b00b9ae01a93304daf6c07f82c0bf79079f2fba30d1d804667",
+              "bytes": 11359771
+            },
+            {
+              "filename": "near_02.dng",
+              "sha256": "6a6975fee2d56398c6372edc822b270c44090b1f5faf9492b465360ad3fd59c5",
+              "bytes": 11408703
+            },
+            {
+              "filename": "near_03.dng",
+              "sha256": "4edf60b8f96b2c9d2a72e596b0fd6dfe437e36d8e686eb8b301dc6bb539e6aad",
+              "bytes": 11329330
+            },
+            {
+              "filename": "near_04.dng",
+              "sha256": "f80e4c483375b336a846786bc8e4bef7993363ee76e64544607f2a723ea61bb9",
+              "bytes": 11397397
+            }
+          ],
+          "optical_axis_distance_m": 0.10023716307383444,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.049862
+        },
+        "far": {
+          "files": [
+            {
+              "filename": "far_00.dng",
+              "sha256": "a90946a5fcb119310293861b81e1930c5c7c62c45d72aba7269cca2269a3d777",
+              "bytes": 9916426
+            },
+            {
+              "filename": "far_01.dng",
+              "sha256": "1cea62b36b45927fc19b6099653340b1ee0b39f4b6ad3d3f1962b41356ba4561",
+              "bytes": 9941130
+            },
+            {
+              "filename": "far_02.dng",
+              "sha256": "f0d564d772bc0e64bf621ec787fbfb3b6014b3989fe7c7ac699e3c3bc118fd33",
+              "bytes": 9941455
+            },
+            {
+              "filename": "far_03.dng",
+              "sha256": "0dc5854bc9c152b136969e42b343a9945404510710feef92975d963cd0a16b8f",
+              "bytes": 9942006
+            },
+            {
+              "filename": "far_04.dng",
+              "sha256": "ae939aae177fcdbcfb88720821266eec442de5b99a64280fc0ae4ffcdc5d1e0b",
+              "bytes": 9942435
+            }
+          ],
+          "optical_axis_distance_m": 0.31145118522907206,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.049862
+        }
+      }
+    },
+    {
+      "source": "data/260818_175005_10cm30cm_burst5",
+      "metadata_sha256": "f9875070baab1c8559a6b81f41992f5256d6f2375009d4e5f7b85dc6b3d8c96f",
+      "sides": {
+        "near": {
+          "files": [
+            {
+              "filename": "near_00.dng",
+              "sha256": "bab32dda2cfd025aeaca82c62dc366fa46d114bcc045d8b805ccecf04de733cb",
+              "bytes": 11055623
+            },
+            {
+              "filename": "near_01.dng",
+              "sha256": "c7b426f9c88184a86f8eb4b5d743b9b1e82338859a5459798b51abdb44e2f51f",
+              "bytes": 11056367
+            },
+            {
+              "filename": "near_02.dng",
+              "sha256": "597b4b08cf580ac5749ce53948cc679255174485bf616fcf0771384c630ef10b",
+              "bytes": 11034854
+            },
+            {
+              "filename": "near_03.dng",
+              "sha256": "c53cb81cdc3f00360cfeff62e59e22ce3d641de86e9c94c2866a23d07a07990d",
+              "bytes": 10986841
+            },
+            {
+              "filename": "near_04.dng",
+              "sha256": "478fb8d7b094a656d572ceb9a49e0f8709a1d6f63669f81af341eeaa51fb365a",
+              "bytes": 11005418
+            }
+          ],
+          "optical_axis_distance_m": 0.10192881728873313,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.049862
+        },
+        "far": {
+          "files": [
+            {
+              "filename": "far_00.dng",
+              "sha256": "87fc19161edbeae0b28d6cbead901286a9ec50ad8ca857183e885ec8208f6e08",
+              "bytes": 9881269
+            },
+            {
+              "filename": "far_01.dng",
+              "sha256": "bbb9f3b10a12ec722113a111bc45d942e44c5baf97e70c322dbc4cb94b9d617f",
+              "bytes": 9875948
+            },
+            {
+              "filename": "far_02.dng",
+              "sha256": "5e0b43463975fad44e8590f0e10dbadde165ae451979ad61465052e792117213",
+              "bytes": 9878495
+            },
+            {
+              "filename": "far_03.dng",
+              "sha256": "dea393287a73971ce67c78a50cfc388cd2f28dad5a05e2e63dd8f0b64059a3ab",
+              "bytes": 9877348
+            },
+            {
+              "filename": "far_04.dng",
+              "sha256": "be3cf8df12555906b2fc0a15e7f0c7aad3dc12efc59c338126a185684e0bf18b",
+              "bytes": 9876275
+            }
+          ],
+          "optical_axis_distance_m": 0.30018874302110576,
+          "applied_iso": 100.15123,
+          "applied_shutter_s": 0.049862
+        }
+      }
+    }
+  ],
+  "frame_combination": "Latest first-frame near/far pair only; no average",
+  "retired_capture": "15cm45cm",
+  "current_selection": {
+    "source": "data/20260827_130311_10cm30cm_burst5",
+    "near": "near_00.dng",
+    "far": "far_00.dng",
+    "averaged": false,
+    "reason": "User selected one latest pair after post-marker burst residuals persisted; other originals retained but excluded."
+  },
+  "selection_policy": "Latest first near/far pair only; no averaging; previous results discarded"
+}

@@ -34,3 +34,14 @@ __pycache__/
 /run_*.ps1
 /watch_*.ps1
 /supervise_*.py
+
+# Current FP32 numerical outputs and raw capture inputs.
+/artifacts/
+/data/*10cm30cm*/
+/.pytest_cache/
+
+/data/260818_174845_478/
+/data/260818_175005_078/
+/data/260923_141241_844/
+/data/260923_161825_503/
+/data/260930_152732_008/

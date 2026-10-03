@@ -1,0 +1,20 @@
+{
+  "data/260818_145715_15cm45cm_single/near.dng": {
+    "sha256": "fa7b08aff9a24494773e0cf6b1ef6c115a4fe3a4a61b50a384414e2ee600095e",
+    "matches_original": true
+  },
+  "data/260818_145715_15cm45cm_single/far.dng": {
+    "sha256": "0c1a1fd3920f1757f3beff862d05d3b9499d0cd210eb39b44e941994cd16261c",
+    "matches_original": true
+  },
+  "data/260818_145715_15cm45cm_single/metadata.json": {
+    "sha256": "d37d7eebce472cab7817715c9434ea5cca24cc5d2c511eb805c2147df1dddcb7",
+    "matches_original": true
+  },
+  "junctions": {
+    ".git": "D:\\NFPLight_runs\\NFPLight_code\\.git",
+    "checkpoints": "D:\\NFPLight_runs\\NFPLight_code\\checkpoints",
+    "results": "D:\\NFPLight_runs\\NFPLight_code\\results",
+    "data/fabric_native256_v1": "D:\\NFPLight_runs\\NFPLight_code\\data\\fabric_native256_v1"
+  }
+}
