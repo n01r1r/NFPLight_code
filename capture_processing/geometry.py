@@ -285,6 +285,10 @@ def rectify_stages(rgb_float: np.ndarray, homography: np.ndarray,
         raise ValueError("marker crop contains source coordinates outside the DNG")
     output = area_resize(cropped, (output_size, output_size))
     geometry = {
+        "policy": "sample_crop_only_v1",
+        "inset": 0.0,
+        "sample_side_cm": 5.0,
+        "sample_side_basis": "user-confirmed sample ROI after paper exclusion",
         "warp_size": warp_size,
         "crop_margin": crop_margin,
         "crop_shape": [warp_size - 2 * crop_margin] * 2,
@@ -308,7 +312,7 @@ def marker_rectify(rgb_float: np.ndarray, homography: np.ndarray,
 
 
 def detect_marker_geometry(rgb_float: np.ndarray, *, min_tags: int = 4,
-                           inset: float = 0.035) -> tuple[np.ndarray, dict[str, Any]]:
+                           inset: float = 0.0) -> tuple[np.ndarray, dict[str, Any]]:
     """Detect AprilTags on a display-only copy and return a promoted homography.
 
     Detection uses uint8 only for coordinates.  The returned quad and
@@ -316,23 +320,21 @@ def detect_marker_geometry(rgb_float: np.ndarray, *, min_tags: int = 4,
     float32 resampler. No display pixels are used as measurements.
     """
 
+    if inset != 0.0:
+        raise ValueError("crop-only capture geometry requires inset=0; use the fixed post-warp crop")
     source = _validate_hwc(rgb_float)
     if source.ndim != 3 or source.shape[2] != 3:
         raise ValueError("marker detection expects HWC RGB")
-    h, w = source.shape[:2]
-    scale = min(1.0, 1600.0 / max(h, w))
-    small_shape = (max(1, round(w * scale)), max(1, round(h * scale)))
-    if scale < 1.0:
-        # This is a detector-only display copy; no computation uses it.
-        small = cv2.resize(source, small_shape, interpolation=cv2.INTER_AREA)
-    else:
-        small = source
-    low, high = np.percentile(small, np.asarray([1, 99], dtype=np.float32))
-    display = np.uint8(np.clip((small - low) / max(float(high - low), 1.0), 0, 1) * 255.0 + 0.5)
+    # Retain source resolution: far tags lose corner precision when reduced.
+    scale = 1.0
+    low, high = np.percentile(source, np.asarray([1, 99], dtype=np.float32))
+    display = np.uint8(np.clip((source - low) / max(float(high - low), 1.0), 0, 1) * 255.0 + 0.5)
     gray = cv2.cvtColor(display, cv2.COLOR_RGB2GRAY)
+    parameters = cv2.aruco.DetectorParameters()
+    parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
     detector = cv2.aruco.ArucoDetector(
         cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11),
-        cv2.aruco.DetectorParameters(),
+        parameters,
     )
     corners, ids, _ = detector.detectMarkers(gray)
     count = 0 if ids is None else int(len(ids))
@@ -362,13 +364,14 @@ def detect_marker_geometry(rgb_float: np.ndarray, *, min_tags: int = 4,
     y_bottom = board[sectors[3], 1].min()
     quad_board = np.asarray([[x_left, y_top], [x_right, y_top],
                              [x_right, y_bottom], [x_left, y_bottom]], dtype=precision)
-    quad_board = quad_board.mean(axis=0) + (quad_board - quad_board.mean(axis=0)) * (1.0 - float(inset))
     quad = quad_board @ rotation + centre
     quad[:, 0] /= scale
     quad[:, 1] /= scale
     destination = np.asarray([[0, 0], [512, 0], [512, 512], [0, 512]], dtype=precision)
     homography = _perspective_from_quad(quad, destination)
     return homography, {
+        "inset": 0.0,
+        "spatial_policy": "sample_crop_only_v1",
         "tags": count,
         "marker_ids": np.asarray(ids).reshape(-1).astype(int).tolist(),
         "marker_corners_raw": {str(int(tag_id)): (tag / scale).tolist() for tag_id, tag in zip(np.asarray(ids).reshape(-1), tags)},
@@ -376,6 +379,7 @@ def detect_marker_geometry(rgb_float: np.ndarray, *, min_tags: int = 4,
         "quad": quad.tolist(),
         "homography": homography.tolist(),
         "detector_scale": float(scale),
+        "detector_corner_refinement": "CORNER_REFINE_SUBPIX",
         "detector_display_percentiles": [float(low), float(high)],
         "detector_input": f"{precision} AHD RGB -> display-only linear percentile uint8",
         "coordinate_precision": f"detector uint8 coordinates promoted to {precision}",

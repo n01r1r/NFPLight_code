@@ -6,11 +6,21 @@ import numpy as np
 import torch
 from utils import svBRDF
 
-FEATURE_VERSIONS = ('raw_calibrated_v2', 'sample_v1', 'legacy_batch_v0')
+CURRENT_RAW_FEATURE_VERSION = 'raw_calibrated_gain9_v3'
+INPUT_NEAR = 4.0
+INPUT_FAR = 12.0
+INPUT_GAIN = 9.0
+FEATURE_VERSIONS = (CURRENT_RAW_FEATURE_VERSION, 'raw_calibrated_v2', 'sample_v1', 'legacy_batch_v0')
 
 
 def checkpoint_feature_version(checkpoint):
-    version = checkpoint.get('feature_version', 'legacy_batch_v0')
+    version = checkpoint.get('feature_version')
+    if version is None and checkpoint.get('package') == 'full_dataset_suite':
+        version = checkpoint.get('identity', {}).get('scientific_settings', {}).get('rendering', {}).get('feature_version')
+        if version is None:
+            raise ValueError('full_dataset_suite checkpoint lacks rendering feature_version')
+    if version is None:
+        version = 'legacy_batch_v0'
     if version not in FEATURE_VERSIONS:
         raise ValueError(f'unsupported feature version: {version}')
     return version
@@ -30,7 +40,7 @@ class NFPLightModel():
         if requested_precision != 'float32':
             raise ValueError("model execution supports only float32")
         self.precision = requested_precision
-        self.capture_precision = bool(getattr(args, 'capture_precision', False))
+        self.capture_precision = bool(getattr(args, 'capture_precision', False)) or getattr(args, 'feature_version', None) == CURRENT_RAW_FEATURE_VERSION
         self.compute_dtype = torch.float32
         self.feature_version = getattr(args, 'feature_version', 'sample_v1')
         if self.feature_version not in FEATURE_VERSIONS:
@@ -50,8 +60,9 @@ class NFPLightModel():
         self.init_rendering()
         self.init_network()
     def init_distance(self):
-        self.near_distance = 2.414
-        self.far_distance = 10
+        current = self.feature_version == CURRENT_RAW_FEATURE_VERSION
+        self.near_distance = INPUT_NEAR if current else 2.414
+        self.far_distance = INPUT_FAR if current else 10.0
     def init_rendering(self):
         # init lighting direction
         self.surface = self.renderer.surface(256,1, dtype=self.compute_dtype, device=self.device)
@@ -157,7 +168,7 @@ class NFPLightModel():
         # relation_map = torch.ones_like(relation_map)-relation_map
         return (self.indenty-self.ClipToOne(relation_map, valid_mask),
                 self.indenty-self.ClipToOne(log_relation_map, valid_mask))
-    def build_features(self, inputs, valid_mask=None):
+    def build_features(self, inputs, valid_mask=None, *, gain_mode='checkpoint'):
         """Linear [B,6,256,256] -> 21 features, optional bool pixel support.
 
         Invalid source/warp pixels are blacked out and excluded from relation
@@ -175,7 +186,16 @@ class NFPLightModel():
                 raise ValueError('feature construction needs valid pixels in every crop')
             inputs = inputs * valid_mask
         near, far = inputs.to(dtype=getattr(self, 'compute_dtype', torch.float32)).chunk(2, dim=1)
-        if getattr(self, 'feature_version', 'sample_v1') == 'raw_calibrated_v2':
+        if gain_mode == 'author_patch20':
+            from model.author_real_capture_adapter import GAIN_PATCH
+            if valid_mask is not None and not valid_mask[:, :, GAIN_PATCH[0], GAIN_PATCH[1]].all():
+                raise ValueError('author gain patch must have full valid support')
+            near_mean = near[:, :, GAIN_PATCH[0], GAIN_PATCH[1]].mean((1, 2, 3))
+            far_mean = far[:, :, GAIN_PATCH[0], GAIN_PATCH[1]].mean((1, 2, 3))
+            scale = near_mean / far_mean.clamp(min=1e-5)
+        elif gain_mode != 'checkpoint':
+            raise ValueError(f'unknown capture gain mode: {gain_mode}')
+        elif getattr(self, 'feature_version', 'sample_v1') in {'raw_calibrated_v2', CURRENT_RAW_FEATURE_VERSION}:
             # Equal calibrated lamp flux/exposure. Avoid division by dark or
             # saturated texture pixels; RAW captures must satisfy this contract.
             scale = near.new_full((len(near),), (self.far_distance / self.near_distance) ** 2)

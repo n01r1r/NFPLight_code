@@ -1,5 +1,7 @@
 > Historical research record. Current capture contract: [CAPTURE_REQUIREMENTS.md](../CAPTURE_REQUIREMENTS.md). Current commands: [README.md](../../README.md). Code citations and run status below describe their recorded version; removed code and old line numbers are not current implementation claims.
 
+**역사 문서:** 현재학습은 [scheduler 정책](../TRAINING_SCHEDULER_POLICY.md)·[현재 상태](../CURRENT_TRAINING_STATE.md), capture는 [현재 요구사항](../CAPTURE_REQUIREMENTS.md)을 따른다. 아래기본값·명령은당시기록이며현재실행지시가아니다. Doctor는이동된로컬link만보정하고없는역사산출물은없음으로표시했다.
+
 # NFPLight 아키텍처 레드팀
 
 **프레임.** SVBRDF 추정의 전 과정 — 촬영·optics·forward model·전처리·network·출력 — 이 단 하나의 물리 단서에 의존한다: near/far 두 샷의 공간 광량 falloff 차이. 이 문서는 그 단서가 어디서 오염되고 어디서 사라지는지를 심각도 순으로 정리한다.
@@ -9,7 +11,7 @@
 ## 치명 — 구조적
 
 **1. 단서와 노이즈가 같은 부분공간에 있다.**
-disambiguation은 `relation_map = (time_co·aligned_far − near) / coefficient`로 유도된다([nfplight_real_model.py:94](../../model/nfplight_real_model.py:94)). vignetting, flash 반사판 불균일, board tilt, ambient, inter-reflection은 모두 near-field falloff와 같은 저주파 radial 패턴이라 물리적으로 단서에서 분리할 수 없다. white/gray 기준판, geometry용 checkerboard, 측정 광량 같은 per-capture calibration이 전혀 없어 redundancy가 0이다.
+disambiguation은 `relation_map = (time_co·aligned_far − near) / coefficient`로 유도된다(nfplight_real_model.py:94 — `../../model/nfplight_real_model.py:94` (과거 경로·현재 파일 없음)). vignetting, flash 반사판 불균일, board tilt, ambient, inter-reflection은 모두 near-field falloff와 같은 저주파 radial 패턴이라 물리적으로 단서에서 분리할 수 없다. white/gray 기준판, geometry용 checkerboard, 측정 광량 같은 per-capture calibration이 전혀 없어 redundancy가 0이다.
 
 **2. Vignetting은 상쇄되지 않고 near/far에서 다르게 나타난다.**
 near 샷은 board가 프레임을 채우고 far 샷은 board가 중앙 소영역만 차지한다. resize 후 두 샷의 vignette 프로파일이 다르다. relation 식에서 렌즈 vignette V(x)는 곱으로 남아 나눠지지 않으므로 radial 체계 편향이 n, r 단서에 그대로 주입된다. 학습은 vignette 없는 synthetic이라 net이 이 편향을 흡수하지 못한다.
@@ -21,13 +23,13 @@ near 샷은 board가 프레임을 채우고 far 샷은 board가 중앙 소영역
 colocated에서 H=L=V이므로 픽셀당 specular lobe를 단 하나의 configuration으로만 샘플한다([render_util.py:326](../../utils/render_util.py:326)). matte·평탄 normal 영역에는 highlight가 없어 roughness 렌더 민감도가 2% 미만이다(선행 실험). 출력 r은 측정이 아니라 prior의 산물이며, confidence 출력이 없어 측정값과 구분되지 않는다.
 
 **5. Geometry 상수 하드코딩이 rig에 엄격한 calibration을 요구한다.**
-real은 near=4 / far=12([nfplight_real_model.py:23](../../model/nfplight_real_model.py:23)), syn은 2.414 / 10이다. "distance 4"는 카메라가 board 반폭의 4배 거리·축상·정중앙이라는 뜻이고 coefficient map이 이 값에 의존한다. per-capture 보정 입력이 없으므로 실측 rig가 4× / 12×를 정확히 재현하지 못하면 단서 자체가 miscalibrated된다. 30 cm board 기준 60 cm / 180 cm 축상 중앙 — 재현이 까다롭고 검증 수단이 없다.
+real은 near=4 / far=12(nfplight_real_model.py:23 — `../../model/nfplight_real_model.py:23` (과거 경로·현재 파일 없음)), syn은 2.414 / 10이다. "distance 4"는 카메라가 board 반폭의 4배 거리·축상·정중앙이라는 뜻이고 coefficient map이 이 값에 의존한다. per-capture 보정 입력이 없으므로 실측 rig가 4× / 12×를 정확히 재현하지 못하면 단서 자체가 miscalibrated된다. 30 cm board 기준 60 cm / 180 cm 축상 중앙 — 재현이 까다롭고 검증 수단이 없다.
 
 ## 심각
 
-- **scale이 중앙 20×20 단일 스칼라다**([nfplight_real_model.py:108](../../model/nfplight_real_model.py:108)). 중앙이 board 위·비포화·동일재질이어야 한다. 하나라도 깨지면 far 정렬과 relation 전체가 무너진다.
-- **coefficient가 중앙에서 0이라 0/0 증폭이 일어난다**([nfplight_real_model.py:97](../../model/nfplight_real_model.py:97)). 단서는 중앙에서 소멸하고 corner에서 최대인데, corner는 vignette·perspective·board edge·수차가 가장 나쁜 곳이다. 단서가 optics를 가장 못 믿을 곳에만 산다.
-- **ClipToOne이 전역 min/max 정규화다**([nfplight_real_model.py:88](../../model/nfplight_real_model.py:88)). dust나 saturated 반점 하나가 map 전체를 재스케일한다.
+- **scale이 중앙 20×20 단일 스칼라다**(nfplight_real_model.py:108 — `../../model/nfplight_real_model.py:108` (과거 경로·현재 파일 없음)). 중앙이 board 위·비포화·동일재질이어야 한다. 하나라도 깨지면 far 정렬과 relation 전체가 무너진다.
+- **coefficient가 중앙에서 0이라 0/0 증폭이 일어난다**(nfplight_real_model.py:97 — `../../model/nfplight_real_model.py:97` (과거 경로·현재 파일 없음)). 단서는 중앙에서 소멸하고 corner에서 최대인데, corner는 vignette·perspective·board edge·수차가 가장 나쁜 곳이다. 단서가 optics를 가장 못 믿을 곳에만 산다.
+- **ClipToOne이 전역 min/max 정규화다**(nfplight_real_model.py:88 — `../../model/nfplight_real_model.py:88` (과거 경로·현재 파일 없음)). dust나 saturated 반점 하나가 map 전체를 재스케일한다.
 - **2샷 공간 정합이 없다.** 정렬은 전역 스칼라 scale과 per-pixel time_coeff뿐이다. lateral shift나 재프레이밍이 있으면 relation이 망가진다.
 - **ambient는 가법항이라 1/d²를 따르지 않는다.** 실내 조명이 relation 단서를 직접 오염시킨다. 암실 강제나 보정이 없다.
 - **denoiser 도메인갭.** synthetic noise로 학습한 첫 단이라([nfplight_net.py:374](../../network/nfplight_net.py:374)) 실측 sensor 노이즈와 어긋나면 hallucination이 하류로 전파된다.

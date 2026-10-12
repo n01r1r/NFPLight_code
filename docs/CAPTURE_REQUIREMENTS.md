@@ -1,5 +1,8 @@
 # 현재 Fabric DNG 리포트: 생성 규약과 데이터 흐름
 
+완료된 refinement runner·날짜별 report/PDF 생성기와 전용 테스트는 [복구용 원본 ZIP](archive/completed_refinement_sources.zip)으로 정리했다. 아래 관련 Python 명령은 과거 기록이며 재현할 때만 ZIP의 원래 상대 경로로 복구한다. 현재 capture·학습 진입점은 유지한다.
+
+
 문서 기준일: 2026-10-03. 대상은 원본 저자 weight로 생성한 현재 Fabric 리포트다.
 이 문서는 현재 규약의 단일 기준이다. 과거 결정과 실행 기록은 [문서 이력](archive/README.md)에서 확인한다.
 새 지시가 과거 지시를 대체한 경우에는 현재 규약을 적용한다.
@@ -20,7 +23,7 @@ ASD-STE100은 통제된 영어를 위한 규칙이므로 한국어 문서의 작
 | 광도 처리 | `both=(D-B)/(W-B)` 하나만 사용한다 |
 | 추론 weight | 현재 runner는 원본 `net_g_real.pth`만 허용한다 |
 | 노이즈 제거 | denoiser 생성·weight 로드·실행 및 denoising image 입력을 금지한다 |
-| 공간 처리 | 공통 near_00 마커 평면 → bilinear 512 → 중앙 crop 420 → exact-area 256 |
+| 공간 처리 | inset=0 · 공통 near_00 마커 평면 → bilinear 512 → 단일 crop46/420(샘플 5cm) → exact-area 256 |
 | 평균 | 양쪽 5장 모두 수치·무늬 정합 조건을 통과할 때만 각각 동일 가중 평균 |
 | 평균 실패 | 같은 묶음의 near_00/far_00만 사용한다. 실패 이유를 기록한다 |
 | 출력 | 묶음별 `report.html`, 전체 `index.html`, 수치 배열 및 검증 기록 |
@@ -31,6 +34,32 @@ ASD-STE100은 통제된 영어를 위한 규칙이므로 한국어 문서의 작
 기존 best_render 수치 자료를 현재 예측으로 재사용하거나 다시 추론하지 않는다.
 과거 PNG/FP32 실험과 파생 리포트 스크립트를 활성 코드에 다시 넣지 않는다.
 전역 허용 저자 estimator는 원본 real/syn weight이지만, 현재 real33 경로에는 synthetic21 추론이 없다.
+
+## 1.1. 2026-10-08 사용자 승인 Fabric checkpoint 재비교
+
+사용자가 400k 종료, 누적 500k 최종, 예전 best_render 세 weight의 새 추론을 명시적으로 승인했다.
+이 별도 비교에는 위 custom-weight 제외 규칙의 예외를 적용한다. 저자 원본 리포트와 기존 best_render 수치 자료는 보존한다.
+[재추론 리포트](../artifacts/fabric_checkpoint_comparison_20261008/index.html),
+[실행기](../run_fabric_checkpoint_comparison.py), [실행 계약](../artifacts/fabric_checkpoint_comparison_20261008/experiment_plan.json)을 사용한다.
+기존 continuous-AHD FP32 camera RGB를 읽기 전용으로 읽고 현재 공통 정합·crop·프레임 선택·both·WB/matrix를 새 계산한다.
+입력 PNG 재읽기, 8-bit 양자화, 입력 gamma, denoiser, AMP, TF32, SHA-256 계산은 하지 않는다. 출력은 PNG·JSON·HTML이며 NPZ를 저장하지 않는다.
+최초 비교는 Fabric 21채널 raw_calibrated_v2의 고정 gain=(10/2.414)²를 사용했다. 2026-10-08 추가 사용자 지시에 따라 새 비교는 저자 실측 코드의 중앙 20×20 `[118:138,118:138]` RGB 전체 평균 비율 K_L을 사용한다. 논문 식 (4)는 중앙 비율을 정의하며 영역 크기는 저자 실측 코드 L102에 따른다. 세 weight·21채널·기하 near=2.414/far=10·decoder·FP32·교정 입력·프레임 선택은 유지한다. 이는 학습 고정 gain 계약과 다른 승인 입력 조건이며 완전한 저자 원본 모델 재현을 뜻하지 않는다.
+새 결과: [영역 평균 비교](../artifacts/fabric_checkpoint_comparison_patch20_20261008/index.html). 실행은 `python run_fabric_checkpoint_comparison.py --out artifacts/<새 경로> --gain-mode author_patch20 --review-from artifacts/fabric_checkpoint_comparison_20261008`이다. 기존 정합 기록이 새 계산과 완전히 같을 때만 이전 시각 검토를 재사용하고 출처를 기록한다. 기존 고정 gain report와 수치는 보존한다.
+400k는 fabric_amp_l1map400k_render100k_20260915/stage_a.pth,
+best_render는 400k+49k, 최종은 400k+100k다. 재시작 로그 total_step=149k/200k와 누적 학습량을 구분한다.
+다섯 묶음 × 세 weight의 15개 예측을 새로 계산했다. 078·503은 5장 평균이며 나머지는 수치 게이트 실패로 near_00/far_00이다.
+입력·특징 동일성, 반복 추론 일치, FP32·유한값, 원본 크기·mtime 보존 및 HTML 기능 검사는 artifact 검증 JSON에 기록한다.
+기존 학습은 AMP였으며 새 추론은 FP32다. 실측 SVBRDF GT가 없으므로 맵 차이를 재질 정확도로 해석하지 않는다.
+
+## 1.2. 2026-10-10 사용자 승인 robustness 후보 실측 비교
+
+사용자가 완료된 7조건의 비교분석과 유망 후보 real data inference·기존 규약 리포트를 명시적으로 요청했다. 이번 범위는 seed19 extra_crop7m_p01 선택 가중치와 같은 모델 family의 baseline7m_p01 대조 가중치, 기존 5개 10/30cm 묶음의 새 FP32 추론이다. 기존 저자 원본 리포트와 §1.1의 세 checkpoint 비교는 보존한다.
+
+새 출력은 `artifacts/robustness_real_extra_crop_20261010`이다. 두 모델은 원래 학습 계약인21채널 raw_calibrated_gain9_v3·near4/far12·고정 gain9·F0=.04와 해당 decoder를 그대로 사용한다. §1.1의 author_patch20 gain과near2.414/far10 기하를 이번 모델에 적용하지 않는다. 실측10/30cm와 모델좌표는 거리비만 대응하며 절대 crop-to-world 대응은 미확정이다.
+
+기존 continuous-AHD FP32 camera RGB를 읽기 전용 입력으로 사용해 현재 공통 정합·512→420→256crop·프레임 선택·both·WB/matrix를 새 계산한다. 정합 재계산이 이전 검토와 일치할 때만 시각 검토를 출처와 함께 재사용한다. 수치 입력 PNG 재읽기·gamma·8bit 양자화·denoiser·AMP·TF32·SHA-256은 금지한다. 기존 capture 표시/차이/픽셀조회 규약과 템플릿을 재사용하고 묶음별 report.html·전체 index.html·PNG/JSON 검증을 저장한다. 기존 frozen 입력과 checkpoint를 변경하지 않는다.
+
+실측 SVBRDF GT가 없어 모델간 map 차이나 관측 재렌더 오차를 재질 정확도 개선으로 해석하지 않는다. 학습·새 seed·외부자료·공식test·추가 모델 후보의 자동개시는 이번 승인에 포함하지 않는다.
 
 ## 2. 대상 자료와 현재 리포트
 
@@ -114,12 +143,13 @@ AHD의 제한 처리는 다음과 같다.
 ## 5. 공간 정합과 crop
 
 마커 검출은 각 프레임에서 새로 수행한다.
-검출용 복사본만 8-bit로 만들고, 긴 변의 최대 크기를 1600으로 줄인다.
+검출용 복사본만 8-bit로 만들고, 원본 해상도를 유지하며 `CORNER_REFINE_SUBPIX`로 모서리를 정밀화한다.
+far의 작은 마커를 1600으로 축소해 생기는 좌표 오차를 줄이기 위한 규약이다.
 검출용 1–99 percentile 대비 조정은 광도 정규화가 아니다.
 AprilTag 36h11 마커를 최소 4개 검출해야 한다.
 
 near_00의 보드 중심·대표 방향과 안쪽 모서리로 기준 사각형을 정한다.
-사각형을 중심 방향으로 0.035 inset하고, 512 좌표의 네 꼭짓점에 대응시킨다.
+사각형에 inset을 적용하지 않고(inset=0), 512 좌표의 네 꼭짓점에 대응시킨다. 종이 배제는 다음 단계의 고정 크롭 한 번으로만 수행한다.
 나머지 9장은 near_00과 공유하는 최소 4개 tag의 모든 모서리를 사용한다.
 공유 모서리 좌표를 Hartley 방식으로 정규화하고 FP32 최소제곱으로 homography를 구한다.
 `h22=1`이며, outlier 제거와 임의 가중치 변경을 하지 않는다.
@@ -302,6 +332,51 @@ normal의 길이를 1로 다시 정규화하거나 각도로 바꾸지 않는다
 출력에 camera WB나 camera matrix를 다시 적용하지 않는다.
 GT 없이 재료 정확도 순위나 물리적 정답을 주장하지 않는다.
 
+### 9.1. Prediction 이후 고정 F0 refinement
+
+2026-10-06 사용자 지시에 따라 현재 5개 묶음에 별도 refinement 비교를 추가한다.
+원본 estimator prediction은 그대로 보존하고, 원본의 가상 조명 렌더링을 고정 목표로 삼는다.
+입력 DNG 영상은 refinement loss에 사용하지 않는다. 새 원본 추론과 refinement는 FP32이며
+denoiser·AMP·TF32를 사용하지 않는다. 현재 검토의 선택 프레임과 정합을 그대로 따른다.
+
+Specular RGB F0는 물리 값 `0.04`(raw `-0.92`)로 고정하고 optimizer에서 제외한다.
+Normal·diffuse·roughness만 최적화한다. 이 별도 결과의 normal은 렌더링용 단위 벡터이며,
+diffuse는 `[0,1]`, effective roughness는 기존 렌더러의 `[0.05,1]` 범위다.
+원본 prediction의 저장·표시 규약을 바꾸는 후처리는 아니다.
+Loss는 다중 가상 조명의 원본 렌더링 대비 MSE와 초기 고정-F0 맵 유지 항이다.
+조명 좌표, 반복 수, 학습률, 유지 항 가중치, seed와 오차는 실행 JSON에 기록한다.
+
+원본 near 렌더링의 RGB 평균과 실제 `I_N`의 RGB 평균 사이 제곱 오차를 최소화하는
+양수 스칼라 광원 세기를 구하고 teacher/student에 동일하게 고정한다.
+정제 후 맵에서도 같은 관측 영역으로 표시용 최적 세기를 따로 제안하며 loss에는 되돌려 넣지 않는다.
+이 값은 모델 좌표와 현재 광도 처리에 맞춘 경험적 배율이며 측정 광량이 아니다.
+원본 외관 재현 차이, 미사용 조명 렌더링 차이, 실제 `I_N` 일치도를 구분한다.
+외관 재현 차이 감소를 실제 재질 정확도 향상으로 주장하지 않는다.
+
+새 결과는 별도 artifact에 PNG·JSON·HTML만 저장한다. NPZ와 SHA-256 검증은 생성·실행하지 않는다.
+기존 sample 리포트에는 같은 행·타일 형식으로 원본, 고정-F0 초기값, 정제 결과와 렌더링을 추가한다.
+RGB 표시는 `[0,1]` 및 gamma off/2.2 선택을 유지하고 normal·roughness에는 gamma를 적용하지 않는다.
+
+### 9.2. Rendering loss의 조명 변화·최적화 dynamics 분석
+
+현재 5개 sample의 새 원본 pred에서 시작해 F0 자유와 `F0=0.04` 고정 조건을 비교한다.
+고정 조건이 주 분석이며 자유 조건은 무변화 대조군이다. 원본 pred의 동일 조명 렌더링이
+목표 영상이다. Perturbation, 실제 입력을 목표로 하는 loss, prior, 공간 규제는 추가하지 않는다.
+순수 rendering MSE만 사용하므로 자유 조건은 초기 상태에서 loss·gradient가 0에 가까워야 한다.
+수치 처리로 발생한 차이는 재질 개선이나 의도된 perturbation으로 해석하지 않는다.
+
+카메라는 모델 좌표 `(0,0,4)`에 고정한다. 광원 z는 4로 고정하고 중심 하나,
+중심과 xy 반경 0.25의 네 방향, 중심과 반경 1.5의 네 방향을 각각 비교한다.
+조명·색 채널·픽셀에 대한 평균 MSE를 사용하며 조명 수와 좌표를 기록한다.
+이전 §9.1의 카메라·광원 동시 이동 실험과 구분한다. 샘플별 원본 pred에서 맞춘
+광원 세기는 F0 조건·조명 조건 전체에서 동일하게 고정한다.
+
+Iteration별 loss, raw 맵 공간의 gradient RMS, 업데이트 크기, 물리 맵 변화량과
+단위 normal의 각도 변화를 기록한다. 최종 iteration과 최저 loss iteration을 구분하고,
+모든 조건을 동일한 미사용 조명에서 평가한다. 조명 조건에 대한 결과 민감도와
+맵별 보상 양상을 분석하되 실제 재질 정확도 또는 전 조명 일반화를 주장하지 않는다.
+실행 설정·trajectory·분석은 새 PNG·JSON·HTML artifact로 보존하며 NPZ·SHA-256은 사용하지 않는다.
+
 ## 10. LibRaw 비교의 범위
 
 LibRaw AHD reference는 주 입력과 별도로 생성하는 비교 자료다.
@@ -317,6 +392,16 @@ reference 결과로 continuous AHD 주 입력이나 주 예측을 대체하지 �
 ## 11. 리포트 표시 규약
 
 수치 배열과 화면 이미지는 분리한다. 표시 변환은 원본 NPZ나 통계를 바꾸지 않는다.
+선형 RGB 입력·밝기 보정·입사각 보정 영상의 표시 범위는 항상 `[0,1]`로 고정한다.
+단계별 percentile 자동 대비 조정은 금지한다. 범위 밖 값은 표시 복사본에서만 clip한다.
+K_L처럼 공간적으로 일정한 계수는 실제 숫자로 표시하며 단색 영상으로 표현하지 않는다.
+변하는 수치 계수(K_θ·coefficient·denominator)는 제한된 원값 범위로 표시하고 실제 값 눈금을 붙인다.
+이는 선형 RGB `[0,1]` 고정 규칙과 구분한다. 계산 배열과 계수 값은 바꾸지 않는다.
+2026-10-06 사용자가 지정한 `fabric_capture_20261002_aligned_paper_equations` 전면 갱신에는 NPZ 저장을 금지한다.
+`run_fabric_capture.py --refresh-no-npz --all-groups --archive-root <보존 원본 FP32 경로> --out <지정 경로>`는
+원본 camera RGB를 읽기 전용으로 읽고, 새 공통 좌표 정합·검토·FP32 추론을 메모리에서 수행한다.
+새 artifact는 묶음별 `refresh_20261006/`이며 PNG·JSON·HTML만 저장한다. NPZ·SHA-256 검증은 실행하지 않는다.
+이 모드에서는 수치 원본이 저장됐다고 주장하지 않는다. 과거 NPZ와 예측은 보존하며 현재 비교에서 제외한다.
 
 | 자료 | 표시 규약 |
 |---|---|
@@ -456,3 +541,75 @@ far 입력·중앙 gain·특징·예측이 달랐다. 공통 평면 정합 변�
 
 실행별 실제 값은 해당 artifact의 manifest와 배열로 확인한다.
 이 문서의 규약, 코드 구현, 실행 기록이 충돌하면 충돌을 먼저 보고하고 원인을 확인한다.
+
+현재 보고서는 사용자 수정 지시에 따라 F0=0.04 고정 조건만 표시한다. 과거 자유 조건의 원시 실행 자료는 보존한다. 원본 prediction은 GT가 아니므로 원본 대비 렌더링·맵 지표는 error가 아닌 차이로 표기한다.
+
+보고서 정성 비교는 본문에 열어 두고 원본 대비 관찰문을 함께 기록한다. n/d/renderer-effective r는 원본=고정 직후 baseline으로 표시하며 원본 F0 렌더와 고정 직후 렌더를 구분한다. 모든 상태를 동일 크기·동일 RGB 표시 변환으로 비교하고 실제 선택 iteration을 캡션에 쓴다. 저장된 렌더는 중앙 조명이므로 미사용 조명 수치의 공간적 원인을 그 영상으로 설명하지 않는다. 광원 세기와 실제 I_N의 사용 범위를 명시한다.
+
+변화 분석의 본문은 픽셀별 normal angular change와 물리 diffuse/roughness/F0의 signed difference heatmap을 사용한다. RGB 차이는 채널별 부호를 보존한다. 공통 color scale·단위·원본 기준·선택 iteration을 표시하고, F0 고정 자체의 차이와 refinement 변화 0을 구분한다. 표시용 PNG 차감으로 수치 heatmap을 만들지 않는다. 광원 조건은 중앙 1광원 및 XY 반경 0.25/1.50의 각 5광원으로 표기한다.
+
+보고서는 원래 pred의 n/d/r/s와 F0 고정 후 n/d/r를 열린 비교 표로 제시한다. 차이는 채널별 패널이 아니라 맵당 단일 영상이며 d/s는 signed RGB, r는 signed grayscale, n는 angular variation(도)로 표시한다. RGB의 중간 회색은 변화 0이며 배율과 비교 가능 범위를 캡션에 기록한다.
+
+### 활성 Fabric 학습·추론 입력 계약 (2026-10-08)
+
+새 raw_calibrated_gain9_v3 checkpoint는 near=4/far=12 모델 좌표와 고정 far gain=9, linear FP32를 공유한다. Lamp intensity16, surface[-1,1], colocated light/camera이며 입력 양자화·gamma·denoiser는 없다. 실측10/30cm와 동일 거리비이며 절대 crop-to-world 대응은 미확정이다. 저자 원본 및 §1.1 역사적 재비교는 기존 checkpoint별 계약을 유지한다.
+
+
+## 2026-10-08 렌더링·재질 맵 차이 표시 갱신
+
+사용자 지시에 따라 렌더링 comparison/residual의 `difference` 영상은 CIEDE2000 ΔE00으로 표시한다. 기존 최적화 loss와 MSE 수치는 유지한다. 모델 특징의 near−scaled-far, relation 및 촬영 정합 차이는 원래 정의를 유지한다.
+
+색차 입력은 저장 FP32의 선형 sRGB다. clip·gamma·노출 없이 XYZ D65→Lab(2°)로 변환하고 kL=kC=kH=1의 ΔE00을 계산한다. 색 변환만 CPU FP64를 사용하며 추론·학습·저장 배열 정밀도는 바꾸지 않는다. 음수·비유한 RGB와 잘못된 shape는 오류로 처리한다. 1 초과 RGB의 색차는 white Y=1 기준 확장값이며 디스플레이 JND 판정을 뜻하지 않는다.
+
+맵 difference는 normal 각도(°), roughness 부호 있는 물리값 차이, diffuse/F0의 선형 RGB 반사율 RMS 크기다. RGB RMS는 채널별 부호를 보존하지 않으므로 원래 채널은 대화형 픽셀 조회에서 확인한다. 각 difference PNG와 대화형 PNG export에는 colorbar, 범위, 단위, clipping 비율을 포함한다.
+
+범위는 0부터 실제 최대 크기를 기본으로 사용한다. P98 절대값이 최대의 절반보다 작으면 고립된 꼬리를 표시에서 clipping하고 P98을 상한으로 사용한다. 지표와 원수치에는 모든 픽셀을 포함한다. 동일 sample의 original/updated 대 I_N은 같은 범위를 사용한다. A/B explorer는 전체 영상의 현재 pair 범위를 기준으로 하며 ROI가 범위를 바꾸지 않는다. 다른 pair의 색 강도는 범례를 함께 확인한다.
+
+재생성: `python refresh_difference_reports.py`, `python build_cue_constraints_report.py`, `python build_cue_explorer.py`. 모두 새 최적화 없이 저장 결과를 표시한다. 검증·범위·제한 목록은 [difference 갱신 기록](../artifacts/difference_display_refresh_20261008/verification.json)에 있다. 저장 FP32 prediction/render가 없는 checkpoint·capture 결과는 PNG로 색차를 역산하지 않는다. 과거 PDF와 원수치가 없는 중간 montage는 기존 기록이며 이 갱신의 수치 색차 비교로 해석하지 않는다.
+
+
+### 2026-10-10 PI 피드백: RAW 처리 감사
+
+[LibRaw·실측 입력 감사](../artifacts/representation_inverse_council_20261010/LIBRAW_REAL_INPUT_AUDIT_KO.md)를 따른다. 별도 감사 작업이지만 처리 옵션·metadata·보정·표현·모델의 공동 영향으로 해석한다. 현행 수치 계약을 변경하지 않는다. 코드/옵션/저장 metadata 감사와 향후 픽셀·물리 검증을 구분한다.
+
+
+## 1.3. 2026-10-12 사용자 승인 전체 데이터 7M 완주 후 실측 보고
+사용자가 현재 전체 Fabric+Leather baseline7m_p01 완주 후 real-data inference report를 요청했다. 새 출력은 `artifacts/full_dataset_baseline7m_real_20261012`이다. 같은 실행의 best_map.pt와 최종 selected.pt를 비교하고 net_g_selected_fp32.pth의 tensor 동일성을 검사한다. 마지막 optimizer weight와 validation-selected weight를 혼동하지 않으며 실제 selection stage/step을 표기한다. 이전 §1.2 진단셋 가중치는 재사용하지 않는다.
+§1.2의 공통 정합·512→420→256·5장 평균 게이트/실패 near00/far00·both·원본 FP32 camera RGB·gain9·near4/far12·unit-normal·F0=.04·lamp16 계약과 기존 HTML 표시·차이·픽셀조회 템플릿을 재사용한다. 정합 기록이 이전 승인 기록과 정확히 같을 때만 시각 검토를 재사용한다. 이전 예측/수치를 새 모델 결과로 재사용하지 않고 fresh FP32 추론 및 반복 일치를 검사한다. 묶음별 독립 비교, PNG/JSON/HTML만 저장하며 SHA-256·NPZ·denoiser·입력 gamma/8bit 재읽기·AMP/TF32는 실행하지 않는다. 실측 GT가 없으므로 관측 재렌더 차이를 재질 정확도로 주장하지 않는다. 원본 저자 real33은 다른 계약의 역사적 참조다. 브라우저 시각·조작 검사는 완료 근거가 없으면 미수행으로 표기한다.
+
+
+### 2026-10-12 학습 중 best-map/best-render 갱신 보고 승인
+사용자가 가용한 map-best/render-best로 현재 real-data HTML을 생성·갱신하도록 요청했다. `artifacts/full_dataset_baseline7m_best_real_20261012/refresh.py`가 일관된 snapshot을 별도 복사하고 CPU FP32로 새 추론한다. 완료 여부 gate 대신 두 best checkpoint의 현재 실행 identity·FP32 finite·strict load를 검사하며 실제 stage/step을 표기한다. 나머지 §1.3 입력·정합·프레임·표시·보존·claim 규약은 그대로 적용한다. 버전별 결과를 보존하고 성공한 최신 보고서만 index.html/latest.json으로 연결한다. 현재 학습과 완료 후 보고 대기열은 변경하지 않는다.
+
+
+### 2026-10-12 사용자 승인 008·478 burst 평균 예외
+사용자 지시로 008은 near/far 동일 인덱스0·1·3·4의4장 평균, 478은 near/far5장 평균을 진단한다. 원래 정합 RMS·무늬 검토 실패를 통과로 바꾸지 않고 user_average_override.json에 실패 사유와 권한을 함께 기록한다. 선택 프레임의 full crop 지원은 유지한다. 현재 best-map Map152k와 best-render Render32k snapshot을 그대로 사용해 frame selection 효과를 비교한다. 기존 단일 쌍 보고서는 보존하며 새 출력은 artifacts/full_dataset_478_008_burst_20261012다. FP32 CPU·both·gain9·near4/far12·F0=.04·unit-normal 및 나머지 표시 규약은 유지한다. 시간축 변동에는 noise·조명·잔여 움직임이 섞이므로 순수 sensor noise나 정확도 개선으로 주장하지 않는다.
+
+
+### 2026-10-12 사용자 승인 far blur 민감도 진단
+사용자가 이론적 긍정·반박 및 병렬 보고서 생성을 요청했다. 새 출력 artifacts/full_dataset_far_blur_20261012는 현재 승인 burst 조건의478/008에 far-only Gaussian σ0·0.5·1·2px(256grid) 민감도를 검사한다. 선형 calibrated unclipped FP32 RGB에 ±3σ kernel/reflect101 후 clip하며 near·gain9·geometry·F0·동일Map152k/Render32k snapshot은 고정한다. 모든 조건의 관측오차 target은 unblurred burst 평균으로 유지한다. 이는 명시 승인된 blur 진단으로 learned denoiser/denoising image를 사용하지 않으며 기존 정식 입력·학습을 변경하지 않는다. 478 정합 실패는 그대로 기록한다. 기존 평균보고서를 보존하며 객관적noise분리·세부보존·실측GT 정확도/최적σ를 검증했다고 주장하지 않는다.
+
+
+## 2026-10-12 활성 입력: 크롭 한 번으로 5cm 샘플 ROI 확보
+
+사용자가 확인한 5cm는 **종이를 제외한 샘플 영역**이며 마커 내부 전체의 폭이 아니다.
+활성 저장형·메모리 갱신 경로는 `sample_crop_only_v1`로 통일한다.
+마커 내부 quad는 inset=0으로 검출하고, 공통 near_00 기준 512×512로 정렬한다.
+그 뒤 `[46:466,46:466]` 크롭 한 번으로 420×420 샘플 ROI를 선택하고,
+전체 샘플 ROI를 FP32 exact-area 방식으로 256×256에 축소한다.
+최종 샘플 ROI의 물리 폭은 사용자 확인값 5cm로 기록한다. 마커 내부 전체 폭을 5cm로
+간주하거나 420/512를 곱해 최종 폭을 축소 계산하지 않는다. 추가 inset은 오류로 거부한다.
+
+inset 제거로 homography와 최종 픽셀 기준 RMS가 바뀌므로 새 입력은 정합/RMS/support 및
+실제 무늬 검토를 다시 수행한다. 과거 검토를 자동 재사용하지 않는다.
+46px 고정 크롭이 실제 모든 촬영에서 종이를 배제하는지는 각 묶음의 새 미리보기로 확인하며,
+이 코드 검증만으로 실측 종이 제거 성공이나 추론 개선을 주장하지 않는다.
+gain9·near4/far12·FP32·both 및 프레임 선택 규약은 유지한다.
+008·478의 승인된 평균 예외는 실제 실패 게이트를 보존한다.
+
+이전 `marker_inner_full_v1`(crop=0) 시도는 사용자 ROI 정의와 달라 폐기된 진단이다.
+`artifacts/full_dataset_inner_full_20261012/`의 부분 결과는 보존하지만 활성 리포트나
+정식 5cm 입력 결과로 사용하지 않는다. 이전 inset=0.035 결과도 역사적 입력이다.
+
+구현 검사: 크롭·inset 거부·FP32·메모리 준비 등 관련 테스트 34개 통과.
+실측 첫 프레임 검토: [비교 이미지](../artifacts/crop_only_validation_20261012/crop_only_contact.png) · [검증 기록](../artifacts/crop_only_validation_20261012/verification.json). 5묶음 near_00/far_00의 crop support와 눈에 보이는 종이 테두리 제거를 확인했다. 전체 burst 정합 재검토나 새 모델 추론은 수행하지 않았다.

@@ -14,9 +14,61 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from .raw import sha256_file
+from .report_math import formula_html, math_prose, matrix_html, _math, _tokens, _frac
 
 
 _CONDITIONS = ("both",)
+_NUMERIC_COEFFICIENTS = {"far_gain_scalar", "far_gain_map", "time_co_map", "coefficient",
+                         "coefficient_normalization_max", "denominator"}
+
+
+def _gain_equation_html(value: float) -> str:
+    """Render the measured author gain without a network-dependent TeX renderer."""
+    number = f"{value:.9g}"
+    latex = (rf"K_L = {number} = \frac{{\operatorname{{mean}}_{{p\in\Omega_c,RGB}} I_N(p)}}"
+             r"{\max(\operatorname{mean}_{p\in\Omega_c,RGB} I_F(p),10^{-5})}")
+    def average(side: str) -> str:
+        return ('<mrow><msub><mo>mean</mo><mrow><mi>Ω</mi><mo>,</mo><mtext>RGB</mtext></mrow></msub>'
+                f'<msub><mi>I</mi><mi>{side}</mi></msub></mrow>')
+    return (f'<math xmlns="http://www.w3.org/1998/Math/MathML" data-latex="{html.escape(latex, quote=True)}">'
+            '<msub><mi>K</mi><mi>L</mi></msub><mo>=</mo>'
+            f'<mn>{number}</mn><mo>=</mo><mfrac>{average("N")}'
+            '<mrow><mo>max</mo><mo>(</mo>' + average("F") +
+            '<mo>,</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup>'
+            '<mo>)</mo></mrow></mfrac></math>')
+
+
+_SCALAR_VALUE_JS = """function showScalarValue(key,mode,sc){
+const image=document.getElementById('image_'+mode);
+const rangeLabel=document.getElementById('range');
+rangeLabel.innerHTML=rangeLabel.textContent.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replace('x^(1/2.2)','<math xmlns="http://www.w3.org/1998/Math/MathML"><msup><mi>x</mi><mfrac><mn>1</mn><mn>2.2</mn></mfrac></msup></math>');
+document.getElementById('label_'+mode).innerHTML=stageMathLabels[key]||stageLabels[key];
+{
+const source=sc.source_range||sc.range;
+const display=sc.rgb?'색상 영상 · 공통 표시 범위 [0,1].':sc.cmap==='RdBu_r'?'실제 차이 [-1,1] · 파랑: 음수 · 흰색: 0 · 빨강: 양수.':source[0]===0&&source[1]===1?'실제 값 [0,1] · 검정: 0 · 흰색: 1.':'표시 정규화: <math xmlns="http://www.w3.org/1998/Math/MathML"><mi>v</mi><mo>=</mo><mo>clip</mo><mo>(</mo><mfrac><mrow><mi>x</mi><mo>−</mo><mn>'+source[0]+'</mn></mrow><mrow><mn>'+source[1]+'</mn><mo>−</mo><mn>'+source[0]+'</mn></mrow></mfrac><mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></math>';
+document.getElementById('meaning_'+mode).innerHTML=(stageMathDescriptions[key]||stageMathLabels[key]||stageLabels[key])+'<div>'+display+'</div>';
+}
+let value=document.getElementById('scalar_value_'+mode);
+if(!value){value=document.createElement('div');value.id='scalar_value_'+mode;image.before(value)}
+const arrays=((manifest.conditions||{})[mode]||{}).arrays||{};
+const stats=(manifest.common_array_stats||{})[key]||arrays[key]||arrays[key.replace(/_c[0-9]+$/,'')];
+const scalar=!sc.rgb&&stats&&Number.isFinite(stats.min)&&Number.isFinite(stats.max);
+const constant=scalar&&stats.min===stats.max;
+image.style.display=constant?'none':'block';value.hidden=!scalar;
+if(!scalar)return;
+const number=x=>Number(x).toPrecision(9);
+value.style.cssText=constant?'font:600 42px Arial;padding:36px 12px;text-align:center':'font:13px Arial;padding:8px 0';
+if(constant){
+value.textContent=(key==='far_gain_scalar'?'K_L = ':'값 = ')+number(stats.min)+(key==='far_gain_scalar'?' ×':'');
+if(key==='far_gain_scalar'&&gainEquations[mode]){value.innerHTML=gainEquations[mode];value.style.cssText='font-size:24px;padding:28px 8px;text-align:center;overflow-x:auto'}
+document.getElementById('bar_'+mode).style.display='none';
+document.getElementById('meaning_'+mode).textContent=key==='far_gain_scalar'?'영상 전체에 동일하게 곱하는 밝기 배율입니다. 공간적 변화가 없는 상수입니다.':'모든 위치에서 같은 값입니다.';
+}else{
+const range=sc.source_range||sc.range;
+value.textContent='실제 값 '+number(stats.min)+' – '+number(stats.max)+' · 표시 범위 '+number(range[0])+' – '+number(range[1]);
+}
+}
+"""
 _BOTH_ONLY_GALLERIES = (
     "features_gallery_both_only.png",
     "prediction_semantic_gallery_both_only.png",
@@ -47,7 +99,7 @@ _FORMULAS = (
     ("gain g", "raw_calibrated_v2: g=(d_f/d_n)^2", "sample_v1: g=mean(N[:,127,127]) / max(mean(F[:,127,127]), 1e-5)", "checkpoint에 기록된 feature version의 gain을 그대로 사용합니다. 거리 상수는 모델 기하와 실제 촬영 거리를 별도로 보고합니다.", "far_gain_map"),
     ("F·g", "F_g = F × g", "F_g,clip = clip(F_g, 0, 1)", "F_g,clip은 appearance와 saturation mask에 씁니다. relation에서는 clip 전 F_g에 t를 곱한 뒤 별도로 clip합니다.", "far_gained_clipped"),
     ("t · F_t", "t(x,y)=cos(atan(r/d_n))/cos(atan(r/d_f))", "F_t=clip(t × F_g, 0, 1)", "r=sqrt((x−127.5)^2+(y−127.5)^2)/128. F_t는 차이 계산에 쓰는 time-scaled far RGB입니다.", "far_time_clipped"),
-    ("signed / absolute RGB difference", "Δ = F_t − N", "|Δ| = abs(Δ)", "R/G/B를 보존합니다. signed 값은 대칭 공통 범위 gray, absolute 값은 공통 gray 범위로 채널별 표시합니다.", "signed_diff"),
+    ("signed / absolute RGB difference", "Δ = F_t − N", "|Δ| = abs(Δ)", "R/G/B를 보존합니다. 부호 있는 차이는 [-1,1] heatmap, 절대 차이는 [0,1] 흑백으로 채널별 표시합니다.", "signed_diff"),
     ("mean absolute difference", "M = mean_RGB(|Δ|)", "shape [256,256,1], nonnegative", "세 RGB 절대 차이의 산술 평균입니다. 보고서의 relation numerator입니다.", "mean_abs_diff"),
     ("raw optical coefficient", "c_raw=(cos θ_f − cos θ_n)/cos θ_n", "c_norm=c_raw/max(c_raw)", "θ_n=atan(r/d_n), θ_f=atan(r/d_f). c_raw는 model geometry에서 계산되며 입력과 독립입니다.", "coefficient_raw"),
     ("denominator", "c_den=max(c_norm, 1e-5)", "relation_raw=M/c_den", "분모 floor는 coefficient가 0에 가까운 위치에서 나눗셈을 안정화합니다. raw ratio에는 고정 upper clip이 없습니다.", "denominator"),
@@ -75,7 +127,7 @@ _AUTHOR_REAL_FORMULAS = (
     ("saturation mask", "M_R = 1[max_RGB(I_N,I_F,clip(K_L I_F)) ≤ 0.95]", "흰색 1: 유효、검정 0: 과다 노출 제외", "관계 맵의 신뢰 영역입니다. 원본 영상이 존재하는지를 표시하는 기하 정렬 마스크와 구분합니다.", "non_saturated_mask"),
     ("log operator · near RGB", "L(I_N); L(x)=(ln(x+0.01)−ln(0.01))/(ln(1.01)−ln(0.01))", "0–1、어두운 부분을 펼치는 로그 변환", "저장된 로그 변환 영상입니다. 추가 화면 감마를 적용하지 않습니다.", "log_original_6_near_rgb"),
     ("log operator · far RGB", "L(I_F)", "가까운 영상과 같은 로그 변환", "먼 입력 영상의 어두운 부분을 펼칩니다. 추가 화면 감마를 적용하지 않습니다.", "log_original_6_far_rgb"),
-    ("33-channel input", "[I_N,I_F,copy(I_N),copy(I_F),clip(K_L I_F),각 영상의 L(x),R_M,log(R_M),M_R] × 2 − 1", "15 + 15 + 3 = 33개 채널、저장값 −1–1", "여기서는 첫 가까운 영상만 미리 봅니다. 전체 채널은 아래 갤러리에서 확인할 수 있습니다.", "features_legacy33_rgb_preview"),
+    ("33-channel input", "[I_N,I_F,copy(I_N),copy(I_F),clip(K_L I_F),각 영상의 L(x),R_M,log(R_M),M_R] × 2 − 1", "15 + 15 + 3 = 33개 채널、저장값 −1–1", "여기서는 첫 번째 가까운 영상만 미리 봅니다. 전체 채널은 아래 갤러리에서 확인할 수 있습니다.", "features_legacy33_rgb_preview"),
 )
 
 
@@ -256,6 +308,8 @@ def _split_channel_key(key: str) -> tuple[str, int | None]:
 
 def _signed_key(key: str) -> bool:
     base, _ = _split_channel_key(key)
+    if "absolute_difference" in base:
+        return False
     return (base in {"signed_diff", "near_minus_scaled_far", "far_gain_clip_delta", "time_clip_delta"}
             or "difference" in base or base.endswith("_delta"))
 
@@ -340,9 +394,14 @@ def _display_rgb(value: np.ndarray, key: str, manifest: dict[str, Any],
 
 def _fixed_range(key: str) -> tuple[float, float] | None:
     base, _ = _split_channel_key(key)
+    if _signed_key(key):
+        return -1.0, 1.0
     if base in {"relation", "log_relation", "relation_log", "relation_normalized", "relation_log_normalized",
+                "abs_diff", "mean_abs_diff", "mean_abs_diff_rgb",
                 "near_input_clipped", "far_input_clipped", "far_gained_clipped",
-                "far_time_clipped"}:
+                "original_copy_far_gained_clipped", "original_copy_far_gained_unclipped",
+                "near_input_unclipped", "far_input_unclipped", "near_linear_srgb", "far_linear_srgb",
+                "far_time_clipped", "far_time_unclipped", "log_original_copy_far_gained_3"}:
         return 0.0, 1.0
     if base in {"features", "features_legacy33", "prediction", "prediction_raw_10"}:
         return -1.0, 1.0
@@ -356,6 +415,8 @@ def _fixed_range(key: str) -> tuple[float, float] | None:
 
 
 def _display_contract(key: str, suggested: list[float] | tuple[float, float]) -> tuple[float, float, str]:
+    if _signed_key(key):
+        return -1.0, 1.0, "RdBu_r"
     fixed = _fixed_range(key)
     if fixed is not None:
         return fixed[0], fixed[1], "gray" if _split_channel_key(key)[0] in {"features", "prediction"} else "gray"
@@ -599,7 +660,7 @@ def _feature_groups(channel_count: int, model_contract: dict[str, Any] | None = 
     """Return only channel groupings and ranges supported by the recorded model contract."""
     contract = model_contract or {}
     version = contract.get("feature_version")
-    if channel_count == 21 and version == "raw_calibrated_v2":
+    if channel_count == 21 and version in {"raw_calibrated_v2", "raw_calibrated_gain9_v3"}:
         rgb_titles = ("N", "F", "F × g", "log N", "log F", "log(F × g)")
         rgb_groups = [(title, (index * 3, index * 3 + 1, index * 3 + 2))
                       for index, title in enumerate(rgb_titles)]
@@ -745,6 +806,8 @@ def _save_display_previews(output: Path, display_ranges: dict[str, list[float]],
             continue
         current = display_ranges.get(key, [0.0, 1.0])
         low, high = _make_range(key, condition_arrays, display_ranges, manifest)
+        if _is_rgb_visual(key, values[0]):
+            low, high = 0.0, 1.0
         low, high, cmap = _display_contract(key, (low, high))
         display_ranges[key] = [low, high]
         for mode, data in condition_arrays.items():
@@ -762,6 +825,20 @@ def _save_display_previews(output: Path, display_ranges: dict[str, list[float]],
                     _render_array(value, key, output / relative, (low, high), cmap,
                                   manifest=manifest, gamma22=True)
                     gamma_files.append(relative.as_posix())
+    for mode, data in condition_arrays.items():
+        if "features_legacy33" not in data or "log_original_6" not in data:
+            continue
+        aliases = {
+            "features_legacy33_rgb_preview": data["near_input_clipped"],
+            "log_original_6_near_rgb": data["log_original_6"][..., :3],
+            "log_original_6_far_rgb": data["log_original_6"][..., 3:6],
+        }
+        for key, value in aliases.items():
+            _render_array(value, "linear_srgb", output / mode / "display" / f"{key}.png", (0, 1), "gray")
+            if key == "features_legacy33_rgb_preview":
+                relative = Path(mode) / "display_gamma22" / f"{key}.png"
+                _render_array(value, "linear_srgb", output / relative, (0, 1), "gray", gamma22=True)
+                gamma_files.append(relative.as_posix())
     return gamma_files
 
 
@@ -1065,7 +1142,7 @@ def _feature_channel_names(model_contract: dict[str, Any] | None) -> list[str]:
             "log clipped gain-scaled original far · R", "log clipped gain-scaled original far · G", "log clipped gain-scaled original far · B",
             "relation", "log relation", "non-saturated mask",
         ]
-    if contract.get("feature_version") == "raw_calibrated_v2":
+    if contract.get("feature_version") in {"raw_calibrated_v2", "raw_calibrated_gain9_v3"}:
         return list(_FEATURE_CHANNELS)
     channel_count = _contract_channel_count(contract)
     if channel_count:
@@ -1088,9 +1165,9 @@ def _prediction_table(model_contract: dict[str, Any]) -> str:
                    for index, name in enumerate(order))
     head = html.escape(str(model_contract.get("normal_head", "unspecified")))
     return (f"<p>checkpoint normal head: {head}. `xyz`는 XYZ 단위 길이를 보장하지 않습니다. "
-            "Normal RGB preview는 `(n+1)/2` component encoding이며 normal vector를 정규화하지 않습니다.</p>"
-            "<p>Diffuse/specular physical values는 display-only `(raw+1)/2` linear [0,1] 변환 후 gamma off 기본 RGB 또는 선택형 `x^(1/2.2)`로 표시합니다. "
-            "Roughness는 `(raw+1)/2` scalar [0,1]입니다. raw 10 channels는 NPZ에 그대로 남습니다.</p>"
+            f'Normal RGB preview는 {math_prose("(n+1)/2")} component encoding이며 normal vector를 정규화하지 않습니다.</p>'
+            f'<p>Diffuse/specular physical values는 display-only {math_prose("(raw+1)/2")} linear [0,1] 변환 후 gamma off 기본 RGB 또는 선택형 {math_prose("x^(1/2.2)")}로 표시합니다. '
+            f'Roughness는 {math_prose("(raw+1)/2")} scalar [0,1]입니다. raw 10 channels는 NPZ에 그대로 남습니다.</p>'
             f"<table><thead><tr><th>Channel</th><th>Meaning</th><th>Stored range</th></tr></thead><tbody>{rows}</tbody></table>")
 
 
@@ -1192,7 +1269,7 @@ def _burst_summary_html(manifest: dict[str, Any]) -> str:
 
 
 def _case_image(source: str | None, caption: str, alt: str, *, gamma_source: str | None = None) -> str:
-    caption_html = html.escape(caption)
+    caption_html = math_prose(caption)
     if not source:
         return (f'<figure class="case-tile"><div class="case-image missing" aria-hidden="true"></div>'
                 f'<figcaption>{caption_html}</figcaption></figure>')
@@ -1343,10 +1420,18 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
     selectable_keys.sort(key=lambda key: (priority.get(key, len(priority)),
                                          _split_channel_key(key)[0], _split_channel_key(key)[1] or 0))
     display_configs = {key: dict(value) for key, value in display_configs.items()}
-    for config in display_configs.values():
+    for key, config in display_configs.items():
         if not config.get("rgb"):
+            if _signed_key(key):
+                from matplotlib import colormaps
+                colors = [colormaps["RdBu_r"](index / 32) for index in range(33)]
+                config.update(range=[-1.0, 1.0], source_range=[-1.0, 1.0], cmap="RdBu_r",
+                              stops=[f"rgb({round(c[0]*255)},{round(c[1]*255)},{round(c[2]*255)}) {i*100/32:.2f}%"
+                                     for i, c in enumerate(colors)])
+                continue
             config["source_range"] = list(config["range"])
-            config["range"] = [0.0, 1.0]
+            if key not in _NUMERIC_COEFFICIENTS:
+                config["range"] = [0.0, 1.0]
             config["cmap"] = "gray"
             config["stops"] = ["rgb(0,0,0) 0%", "rgb(255,255,255) 100%"]
     semantic_titles = {record[0]: record[1] for record in _PREDICTION_COMPONENTS}
@@ -1363,17 +1448,17 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
             f'<section class="condition"><h2>{html.escape(mode)}</h2>'
             f'<img class="stage" id="image_{mode}" alt="{html.escape(mode)} selected array">'
             f'<div id="bar_{mode}" class="colorbar"></div>'
-            f'<h3 id="label_{mode}"></h3><p class="imgnote" id="meaning_{mode}"></p>'
+            f'<h3 id="label_{mode}"></h3><div class="imgnote" id="meaning_{mode}"></div>'
             f'<details class="stage-info"><summary>저장된 원래 수치와 계산 정보</summary>'
-            f'<p>{html.escape(str(record.get("formula", "")))}</p>'
+            f'<p>{_math(_frac(_tokens("D−B"), _tokens("W−B")), "(D-B)/(W-B)") if record.get("formula") == "(D-B)/(W-B)" else math_prose(str(record.get("formula", "")))}</p>'
             f'<p class="imgnote" id="note_{mode}"></p><pre id="stats_{mode}"></pre></details></section>')
     formula_rows = []
     for title, lhs, rhs, meaning, key in formula_records:
         gallery_link = (' <a href="#feature-gallery-details" onclick="document.getElementById(\'feature-gallery-details\').open=true">전체 feature gallery</a>'
                         if author_real and title == "33-channel input" else "")
         formula_rows.append(
-            f'<tr><th>{html.escape(_stage_label(key))}</th><td><code>{html.escape(lhs)}</code><br><code>{html.escape(rhs)}</code></td>'
-            f'<td>{html.escape(meaning)}</td><td><button onclick="selectStage(\'{html.escape(key, quote=True)}\')">보기</button>{gallery_link}</td></tr>')
+            f'<tr><th>{math_prose(_stage_label(key))}</th><td>{formula_html(title, lhs, rhs, author=author_real)}</td>'
+            f'<td>{math_prose(meaning)}</td><td><button onclick="selectStage(\'{html.escape(key, quote=True)}\')">보기</button>{gallery_link}</td></tr>')
     formulas = "".join(formula_rows)
     friendly_titles = {
         "features_gallery_both_only.png": "Feature maps · both",
@@ -1402,13 +1487,13 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
     }
     data = json.dumps(ui_manifest, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
     stage_notes = {
-        "linear_srgb": "저장 NPZ 값은 gamma 없는 linear sRGB입니다. 기본 표시에서는 값을 정규화한 뒤 그대로 RGB 바이트로 냅니다. 선택형 gamma는 display-only x^(1/2.2)입니다.",
-        "input_clipped": "모델 입력 linear sRGB [0,1]입니다. 기본 RGB 표시 gamma는 꺼져 있고, 선택형 gamma만 x^(1/2.2)를 적용합니다.",
+        "linear_srgb": "저장 NPZ 값은 gamma 없는 linear sRGB입니다. 기본 표시에서는 값을 정규화한 뒤 그대로 RGB 바이트로 출력합니다. 선택형 gamma는 display-only x^(1/2.2)입니다.",
+        "input_clipped": "모델 입력은 linear sRGB [0,1]입니다. 기본 RGB 표시 gamma는 꺼져 있고, 선택형 gamma만 x^(1/2.2)를 적용합니다.",
         "counts": "AHD/camera RGB count 표시 copy에 WB를 적용하고 camera→linear-sRGB matrix를 한 번 적용했습니다. raw NPZ/stats는 변경하지 않았고 shared RGB exposure를 씁니다.",
-        "bayer": "원시 Bayer는 NPZ/stats에만 있습니다. 선택 시 같은 frame의 WB 적용 demosaic RGB와 camera→linear-sRGB matrix 결과를 표시하며 scalar Bayer raster로 오인하지 않도록 대체 표시입니다.",
-        "signed": "부호 있는 스칼라 차이는 한 장으로, RGB 차이는 빨강·초록·파랑 순서로 표시합니다. 대칭 범위의 흑백 표시값 0.5가 차이 0입니다.",
+        "bayer": "원시 Bayer는 NPZ/stats에만 있습니다. 선택 시 같은 frame의 WB 적용 demosaic RGB와 camera→linear-sRGB matrix 결과를 표시합니다. scalar Bayer raster로 오인하지 않도록 대체해 표시합니다.",
+        "signed": "실제 차이 [-1,1]을 표시합니다. 파랑은 음수, 흰색은 0, 빨강은 양수입니다. RGB 차이는 왼쪽부터 R/G/B 채널입니다.",
     }
-    note_json = json.dumps(stage_notes, ensure_ascii=False).replace("<", "\\u003c")
+    note_json = json.dumps({key: math_prose(value) for key, value in stage_notes.items()}, ensure_ascii=False).replace("<", "\\u003c")
     scales_json = json.dumps(display_configs, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c")
     report_assets = manifest.get("report", {}) or {}
     artifact_links = [("manifest", report_assets.get("manifest", "manifest.json")),
@@ -1438,9 +1523,9 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
         normalized_wb = np.asarray(wb, dtype=np.float32).reshape(-1)[:3] if wb is not None else None
         wb_diagonal = np.diag(normalized_wb).astype(np.float32).tolist() if normalized_wb is not None else None
         transform_rows.append(
-            f'<tr><th>{side}</th><td>WB normalized RGB gains: <code>{html.escape(json.dumps(wb, ensure_ascii=False))}</code><br>'
-            f'WB diagonal matrix (3×3): <code>{html.escape(json.dumps(wb_diagonal, ensure_ascii=False))}</code></td>'
-            f'<td>camera→linear RGB matrix: <code>{html.escape(json.dumps(matrix, ensure_ascii=False))}</code></td></tr>')
+            f'<tr><th>{side}</th><td>WB normalized RGB gains: {matrix_html(wb)}<br>'
+            f'WB diagonal matrix (3×3): {matrix_html(wb_diagonal)}</td>'
+            f'<td>camera→linear RGB matrix: {matrix_html(matrix)}</td></tr>')
     transform_table = ("<details class=technical><summary>Camera RGB display transform · WB diagonal and matrix</summary>"
                        "<p>Display copy only: camera RGB applies WB then the camera-to-linear-sRGB matrix; already-WB RGB applies the matrix once.</p>"
                        f"<table><thead><tr><th>Side</th><th>WB gains / diagonal</th><th>Camera→linear RGB matrix</th></tr></thead><tbody>{''.join(transform_rows)}</tbody></table></details>" if transform_rows else "")
@@ -1458,7 +1543,7 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
     stage_buttons.extend((_stage_label(key), key) for key in semantic_keys)
     stage_nav = "".join(
         f'<button type="button" class="stage-button" data-stage="{html.escape(key, quote=True)}" '
-        f'aria-pressed="false" onclick="selectStage(\'{html.escape(key, quote=True)}\')">{html.escape(label)}</button>'
+        f'aria-pressed="false" onclick="selectStage(\'{html.escape(key, quote=True)}\')">{math_prose(label)}</button>'
         for label, key in stage_buttons)
     initial_stage = "near_input_clipped" if "near_input_clipped" in selectable_keys else selectable_keys[0]
     case_results = _case_results_html(modes, manifest.get("conditions", {}), display_configs,
@@ -1466,6 +1551,19 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
                                       author_real=author_real, model_label=model_label)
     figure_details = ("<details class=technical id=feature-gallery-details><summary>Semantic feature and prediction galleries</summary>" + galleries + "</details>")
     formula_links = artifact_links_html
+    gain_equations = {
+        mode: _gain_equation_html(manifest['conditions'][mode]['arrays']['far_gain_scalar']['mean'])
+        for mode in modes if "far_gain_scalar" in manifest["conditions"][mode].get("arrays", {})}
+    fixed_checkpoint_gain = (model_contract.get("feature_version") in {"raw_calibrated_v2", "raw_calibrated_gain9_v3"}
+                             and model_contract.get("capture_gain_mode", "checkpoint") != "author_patch20")
+    if fixed_checkpoint_gain:
+        gain_equations = {mode: '<span class="fixed-gain">K_L = ' + format(manifest['conditions'][mode]['arrays']['far_gain_scalar']['mean'], '.9g') + ' · checkpoint 고정 gain</span>' for mode in gain_equations}
+    gain_values = " · ".join(gain_equations.values())
+    gain_region_note = ('<p class="run-strip">Ω = Ω_c: 중앙 20×20 영역 [118:138, 118:138] (0부터 시작, 끝 인덱스 제외). RGB 세 채널과 영역 전체의 평균으로 계산한 밝기 배율이며 영상 전체에 동일하게 적용됩니다.</p>' if gain_equations else "")
+    if fixed_checkpoint_gain and gain_equations:
+        gain_region_note = '<p class="run-strip">Ω = 영상 전체: checkpoint 기하의 고정 gain을 동일하게 적용합니다. 중앙 패치 밝기 비율을 추정하지 않습니다.</p>'
+    if fixed_checkpoint_gain and notation_note is None:
+        notation_note = "RAW 교정 21채널 입력입니다. K_L은 checkpoint 기하의 고정 gain이며, 원시 선형 near/far와 gain-scaled far, 각 RGB 로그, relation/log relation 및 유효 mask를 사용합니다. 중앙 패치 gain 추정이나 denoiser를 적용하지 않습니다. 실제 특징 배열과 표시 변환은 단계별 수치에서 확인합니다."
     return f"""<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fabric capture {html.escape(group_label)}</title>
 <style>
@@ -1514,6 +1612,8 @@ section.condition{{min-width:0;max-width:512px;background:#181818;padding:8px;bo
 .technical{{margin:12px 0;background:#181818;padding:8px;border:1px solid #555}}
 .technical h3{{font-size:13px}}
 .formula-wrap,.table-wrap{{overflow-x:auto;max-width:100%}}
+.equation{{font-size:18px;padding:8px 0;overflow-x:auto;max-width:100%}}
+math{{font-family:"Cambria Math",serif}}
 table{{border-collapse:collapse;width:100%;background:#181818;margin:8px 0;font-size:12px}}
 th,td{{border:1px solid #555;padding:5px;vertical-align:top;text-align:left}}
 td code{{white-space:normal;overflow-wrap:anywhere}}
@@ -1540,7 +1640,9 @@ a{{color:#8ccaff}}
 </style><main>
 <h1>Fabric capture · {html.escape(group_label)}{f' · {html.escape(model_label)}' if model_label else ''}</h1>
 {burst_summary}
-<details class="technical"><summary>논문 기호와 현재 계산의 대응</summary><p>{html.escape(notation_note if notation_note is not None else _PAPER_NOTATION_NOTE)}</p><a href="https://cgliwang.github.io/NFPLight/pdf/NFPLight.pdf">논문 Fig. 3 및 식 (4)–(5)</a></details>
+<div class="run-strip" style="font-size:20px;overflow-x:auto;padding:10px 0">{gain_values}</div>
+{gain_region_note}
+<details class="technical"><summary>논문 기호와 현재 계산의 대응</summary><p>{math_prose(notation_note if notation_note is not None else _PAPER_NOTATION_NOTE)}</p><a href="https://cgliwang.github.io/NFPLight/pdf/NFPLight.pdf">논문 Fig. 3 및 식 (4)–(5)</a></details>
 <div class="workspace"><aside class="stage-nav"><label>보고 있는 계산 단계<select id="stage" onchange="showStage()">{options}</select></label><label><input id="gamma22" type="checkbox" onchange="toggleGammaDisplay()"> 화면 밝기 감마 2.2 (기본 꺼짐)</label><p id="range" class="small"></p><div class="stage-buttons" aria-label="Estimator stages">{stage_nav}</div></aside>
 <div class="stage-results"><div class="conditions">{''.join(panels)}</div></div></div>
 {case_results}
@@ -1552,10 +1654,14 @@ a{{color:#8ccaff}}
 <script>const manifest={data};const stageNotes={note_json};const scales={scales_json};
 const stageLabels={json.dumps({key: _stage_label(key) for key in selectable_keys}, ensure_ascii=False)};
 const stageDescriptions={json.dumps({key: lhs+' · '+rhs+' · '+meaning for _,lhs,rhs,meaning,key in formula_records}, ensure_ascii=False)};
+const stageMathLabels={json.dumps({key: math_prose(_stage_label(key)) for key in selectable_keys}, ensure_ascii=False)};
+const stageMathDescriptions={json.dumps({key: formula_html(title,lhs,rhs,author=author_real) + '<p>'+math_prose(meaning)+'</p>' for title,lhs,rhs,meaning,key in formula_records}, ensure_ascii=False)};
 const predictionStages={json.dumps({key:{'channels':list(range(start,end)),'label':title} for key,title,start,end,_,_ in _PREDICTION_COMPONENTS}, ensure_ascii=False)};
+const gainEquations={json.dumps(gain_equations, ensure_ascii=False)};
+{_SCALAR_VALUE_JS}
 function selectedNote(key){{if(key==='features_legacy33_rgb_preview')return 'Display-only alias of the near-input RGB preview for feature channels 0:3 decoded to [0,1]; full 33-channel semantics are in the linked feature gallery.';if(key.startsWith('log_original_6_'))return 'Recorded log-transformed RGB triplet; display only, with no additional WB or gamma.';if(predictionStages[key])return 'Display decode: raw10 channels '+predictionStages[key].channels.join(',')+' → '+predictionStages[key].label+'; raw prediction and channel statistics unchanged.';if(key.includes('signed_diff')||key.includes('near_minus_scaled_far')||key.includes('_difference')||key.endsWith('_delta'))return stageNotes.signed;if(key.includes('bayer'))return stageNotes.bayer;if(key.includes('linear_srgb')||key.includes('input_clipped')||key.includes('input_unclipped')||key.includes('far_gained')||key.includes('far_time'))return stageNotes.linear_srgb;if(key.includes('counts')||key.includes('demosaic_rgb')||key.includes('compensated')||key.includes('whitebalanced')||key.includes('warp512')||key.includes('crop420')||key.includes('output256')||key.includes('libraw'))return stageNotes.counts;return 'FP32 numeric array; PNG is display-only.'}}
 function selectStage(key){{document.getElementById('stage').value=key;document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage===key)));showStage();document.querySelector('.workspace').scrollIntoView({{block:'start'}})}}
-function showStage(){{const key=document.getElementById('stage').value;document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage===key)));const common=Object.hasOwn(manifest.common_array_stats||{{}},key);const sc=scales[key]||{{range:(manifest.display_ranges||{{}})[key]||[0,1],rgb:false,cmap:'gray',stops:[]}};const gamma=Boolean(document.getElementById('gamma22').checked&&sc.rgb&&sc.gammaable!==false);const r=sc.range;document.getElementById('range').textContent=sc.rgb?'shared RGB exposure ['+r[0]+', '+r[1]+']; '+(gamma?'display-only x^(1/2.2)':'gamma off')+(sc.display_fallback?'; '+sc.display_fallback:''):'common scalar range ['+r[0]+', '+r[1]+']; '+sc.cmap+'; gamma/WB not applied.';for(const mode of {json.dumps(modes)}){{const image=document.getElementById('image_'+mode);if(!image)continue;const folder=common?(gamma?'common_display_gamma22':'common_display'):mode+(gamma?'/display_gamma22':'/display');image.src=(sc.scalar_file||folder+'/'+key+'.png');document.getElementById('label_'+mode).textContent=stageLabels[key];const source=sc.source_range||r;document.getElementById('meaning_'+mode).textContent=(stageDescriptions[key]||stageLabels[key])+(sc.rgb?' · 색상 영상입니다.':' · 검정 0 → 흰색 1; 표시값 = clip((원래 값 − '+source[0]+') / ('+source[1]+' − '+source[0]+'), 0, 1). 원래 수치는 아래에 보존됩니다.');const bar=document.getElementById('bar_'+mode);const note=document.getElementById('note_'+mode);if(sc.rgb){{bar.style.display='none'}}else{{bar.style.display='block';const middle=sc.cmap==='gray'&&r[0]<0&&r[1]>0?0:(r[0]+r[1])/2;bar.innerHTML='<div class="bar" style="background:linear-gradient(90deg,'+sc.stops.join(',')+')"></div><div class="ticks"><span>'+r[0]+'</span><span>'+middle+'</span><span>'+r[1]+'</span></div>'}}note.textContent=selectedNote(key);const rec=(manifest.conditions||{{}})[mode]||{{}};let shownStats;if(predictionStages[key]){{const a=rec.arrays||{{}};shownStats={{display_only:true,raw_channels:Object.fromEntries(predictionStages[key].channels.map(index=>['prediction_c'+index,a['prediction_c'+index]]))}}}}else{{const base=key.replace(/_c[0-9]+$/,'');const stats=common?(manifest.common_array_stats||{{}})[key]:((rec.arrays||{{}})[key]||(rec.arrays||{{}})[base]);shownStats={{array:stats,input_lower_clip_fraction:rec.input_lower_clip_fraction,input_upper_clip_fraction:rec.input_upper_clip_fraction,clipping:rec.clipping}}}}document.getElementById('stats_'+mode).textContent=JSON.stringify(shownStats,null,2)}}}}
+function showStage(){{const key=document.getElementById('stage').value;document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage===key)));const common=Object.hasOwn(manifest.common_array_stats||{{}},key);const sc=scales[key]||{{range:(manifest.display_ranges||{{}})[key]||[0,1],rgb:false,cmap:'gray',stops:[]}};const gamma=Boolean(document.getElementById('gamma22').checked&&sc.rgb&&sc.gammaable!==false);const r=sc.range;document.getElementById('range').textContent=sc.rgb?'shared RGB exposure ['+r[0]+', '+r[1]+']; '+(gamma?'display-only x^(1/2.2)':'gamma off')+(sc.display_fallback?'; '+sc.display_fallback:''):'common scalar range ['+r[0]+', '+r[1]+']; '+sc.cmap+'; gamma/WB not applied.';for(const mode of {json.dumps(modes)}){{const image=document.getElementById('image_'+mode);if(!image)continue;const folder=common?(gamma?'common_display_gamma22':'common_display'):mode+(gamma?'/display_gamma22':'/display');image.src=(sc.scalar_file||folder+'/'+key+'.png');document.getElementById('label_'+mode).textContent=stageLabels[key];const source=sc.source_range||r;document.getElementById('meaning_'+mode).textContent=(stageDescriptions[key]||stageLabels[key])+(sc.rgb?' · 색상 영상입니다.':' · 검정 0 → 흰색 1; 표시값 = clip((원래 값 − '+source[0]+') / ('+source[1]+' − '+source[0]+'), 0, 1). 원래 수치는 아래에 보존됩니다.');const bar=document.getElementById('bar_'+mode);const note=document.getElementById('note_'+mode);if(sc.rgb){{bar.style.display='none'}}else{{bar.style.display='block';const middle=sc.cmap==='gray'&&r[0]<0&&r[1]>0?0:(r[0]+r[1])/2;bar.innerHTML='<div class="bar" style="background:linear-gradient(90deg,'+sc.stops.join(',')+')"></div><div class="ticks"><span>'+r[0]+'</span><span>'+middle+'</span><span>'+r[1]+'</span></div>'}}note.innerHTML=selectedNote(key);const rec=(manifest.conditions||{{}})[mode]||{{}};let shownStats;if(predictionStages[key]){{const a=rec.arrays||{{}};shownStats={{display_only:true,raw_channels:Object.fromEntries(predictionStages[key].channels.map(index=>['prediction_c'+index,a['prediction_c'+index]]))}}}}else{{const base=key.replace(/_c[0-9]+$/,'');const stats=common?(manifest.common_array_stats||{{}})[key]:((rec.arrays||{{}})[key]||(rec.arrays||{{}})[base]);shownStats={{array:stats,input_lower_clip_fraction:rec.input_lower_clip_fraction,input_upper_clip_fraction:rec.input_upper_clip_fraction,clipping:rec.clipping}}}}document.getElementById('stats_'+mode).textContent=JSON.stringify(shownStats,null,2);showScalarValue(key,mode,sc)}}}}
 function toggleGammaDisplay(){{const on=document.getElementById('gamma22').checked;document.querySelectorAll('.case-image[data-gamma-src]').forEach(image=>image.src=on?image.dataset.gammaSrc:image.dataset.linearSrc);document.querySelectorAll('.prediction-static-gallery.gamma22-gallery').forEach(x=>x.style.display=on?'block':'none');document.querySelectorAll('.prediction-static-gallery:not(.gamma22-gallery)').forEach(x=>x.style.display=on?'none':'block');showStage()}}
 document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage==={json.dumps(initial_stage)})));document.getElementById('stage').value={json.dumps(initial_stage)};toggleGammaDisplay();</script></main></html>"""
 
@@ -2591,11 +2697,7 @@ def _render_capture_index_html(output: Path, index_records: list[dict[str, Any]]
             f'<span class="status">{html.escape(status)}</span></div>'
             f'<div class="index-selection">{html.escape(selection)}</div>{report_link}'
             f'<details><summary>RMS and clipping details</summary><pre>{details_text}</pre></details></article>')
-    supplemental_links = " · ".join(
-        f'<a href="{path}">{label}</a>' for path, label in (
-            ("pseudo_far/index.html", "far_pseudo = near/9 대조 실험"),
-            ("spatial_alignment_evidence.md", "배율 정렬 근거")) if (output / path).is_file())
-    supplemental_links = f"<p>{supplemental_links}</p>" if supplemental_links else ""
+    supplemental_links = ""
     document = f"""<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fabric capture · groups</title><style>*{{box-sizing:border-box}}body{{font:14px Arial,Helvetica,sans-serif;margin:12px;background:#111;color:#ddd}}main{{max-width:1100px;margin:auto;min-width:0}}h1{{font-size:20px;margin:0 0 10px}}.group-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}.index-card{{min-width:0;background:#181818;border:1px solid #555;padding:9px}}.index-heading{{display:flex;justify-content:space-between;align-items:baseline;gap:8px}}.index-heading h2{{font-size:15px;margin:0}}.status{{font-size:12px;color:#bbb}}.index-selection{{margin:7px 0}}details{{margin-top:7px}}details>summary{{cursor:pointer;font-size:12px}}pre{{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px}}a{{color:#8ccaff}}@media(max-width:620px){{.group-grid{{grid-template-columns:1fr}}}}</style>
 <main><h1>Fabric capture · 5 groups</h1>{supplemental_links}<div class="group-grid">{''.join(cards)}</div><p><a href="index.json">index data</a></p></main></html>"""

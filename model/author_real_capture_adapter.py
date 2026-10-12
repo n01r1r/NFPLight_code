@@ -121,7 +121,7 @@ def assemble_legacy33_features(
     coefficient: torch.Tensor,
     time_coefficient: torch.Tensor,
     coefficient_max: torch.Tensor,
-    *, equation_mode: str = "author_code",
+    *, equation_mode: str = "author_code", fixed_gain: float | None = None,
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     """Build and expose the authors' exact 33 channels from one FP32 pair."""
     if original.shape != (1, 6, IMAGE_SIZE, IMAGE_SIZE):
@@ -146,6 +146,10 @@ def assemble_legacy33_features(
         near_mean = near[:, :, GAIN_PATCH[0], GAIN_PATCH[1]].mean()
         far_mean = far[:, :, GAIN_PATCH[0], GAIN_PATCH[1]].mean().clamp(min=1e-5)
         gain = (near_mean / far_mean).reshape(1, 1, 1, 1)
+    if fixed_gain is not None:
+        if equation_mode != "author_code" or not np.isfinite(fixed_gain) or fixed_gain <= 0:
+            raise ValueError("fixed gain requires author_code and a positive finite value")
+        gain = near.new_full((1, 1, 1, 1), fixed_gain)
     far_gained_unclipped = far * gain
     far_time_unclipped = time_coefficient * far_gained_unclipped
     far_time_clipped = far_time_unclipped.clamp(0, 1)
@@ -223,9 +227,12 @@ class AuthorRealCaptureAdapter:
     """Strict-load the original real estimator without constructing a denoiser."""
 
     def __init__(self, estimator_checkpoint: Path, device: str = "cuda",
-                 image_size: int = IMAGE_SIZE):
+                 image_size: int = IMAGE_SIZE, *, fixed_gain: float | None = None):
         if image_size != IMAGE_SIZE:
             raise ValueError("author legacy33 inference requires native 256x256 input")
+        if fixed_gain is not None and (not np.isfinite(fixed_gain) or fixed_gain <= 0):
+            raise ValueError("fixed gain must be positive and finite")
+        self.fixed_gain = fixed_gain
         self.device = torch.device(device)
         self.compute_dtype = torch.float32
         self.feature_version = FEATURE_VERSION
@@ -269,7 +276,7 @@ class AuthorRealCaptureAdapter:
         features, trace = assemble_legacy33_features(
             inputs, original_copy, self.coefficient, self.time_co_map,
             self.coefficient_normalization_max,
-            equation_mode=equation_mode,
+            equation_mode=equation_mode, fixed_gain=self.fixed_gain,
         )
         self.last_estimator_input = features
         prediction = self.net_g(features)

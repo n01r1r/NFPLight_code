@@ -1,12 +1,14 @@
 > Historical research record. Current capture contract: [CAPTURE_REQUIREMENTS.md](../CAPTURE_REQUIREMENTS.md). Current commands: [README.md](../../README.md). Code citations and run status below describe their recorded version; removed code and old line numbers are not current implementation claims.
 
+**역사 문서:** 현재학습은 [scheduler 정책](../TRAINING_SCHEDULER_POLICY.md)·[현재 상태](../CURRENT_TRAINING_STATE.md), capture는 [현재 요구사항](../CAPTURE_REQUIREMENTS.md)을 따른다. 아래기본값·명령은당시기록이며현재실행지시가아니다. Doctor는이동된로컬link만보정하고없는역사산출물은없음으로표시했다.
+
 # NFPLight — MatSynth From-Scratch 학습 데이터 구성 초안
 
 > **2026-09-12 범위 수정:** 현재 사용자 목표는 **Fabric만 사용하는 from-scratch estimator 학습**이며 DenoiseNet은 명시적으로 제외한다. 최신 설계와 코드 점검은 [Fabric 전용 학습 설계](NFPLight_fabric_scratch_plan.md)를 따른다. 아래 내용은 이전 전체 category 실험 기록으로 보존한다. 특히 Metal 중심 평가, 고정 LR에 대한 논문 해석, LDR/log1p/off-colocated 설명을 현행 구현의 사실로 인용하지 않는다.
 
-**범위.** 파이프라인은 두 학습 단으로 갈린다: `DenoiseNet`(첫 단, noise 부분, [nfplight_net.py:374](../../network/nfplight_net.py:374))과 SVBRDF 추정기 `TwoBranchNet`(후반부, 21-ch, [nfplight_net.py:69](../../network/nfplight_net.py:69)). 이 문서는 **noise 단을 범위에서 제외**하고, 후반부 추정기를 DeepMaterials가 아니라 MatSynth로 **처음부터** 학습시키기 위한 데이터 구성만 다룬다. 기존 합성 학습 경로 `SynDataset`([dataset.py:8](../../data/dataset.py:8))을 대체한다. Optics·capture 물리(vignette, flash baseline, rig)는 데이터로 못 고치므로 비목표 — 레드팀 치명 항목 참조([NFPLight_redteam.md](NFPLight_redteam.md)).
+**범위.** 파이프라인은 두 학습 단으로 갈린다: `DenoiseNet`(첫 단, noise 부분, [nfplight_net.py:374](../../network/nfplight_net.py:374))과 SVBRDF 추정기 `TwoBranchNet`(후반부, 21-ch, [nfplight_net.py:69](../../network/nfplight_net.py:69)). 이 문서는 **noise 단을 범위에서 제외**하고, 후반부 추정기를 DeepMaterials가 아니라 MatSynth로 **처음부터** 학습시키기 위한 데이터 구성만 다룬다. 기존 합성 학습 경로 `SynDataset`(dataset.py:8 — `../../data/dataset.py:8` (과거 경로·현재 파일 없음))을 대체한다. Optics·capture 물리(vignette, flash baseline, rig)는 데이터로 못 고치므로 비목표 — 레드팀 치명 항목 참조([NFPLight_redteam.md](NFPLight_redteam.md)).
 
-기존 v0 probe(`finetune_fabric.py`)와의 차이: v0은 **사전학습 net의 LoRA finetune + map-L1 only**. 이 초안은 **전 파라미터 from-scratch + render loss 포함**. loader·renderer·21-ch 조립은 v0에서 그대로 재사용한다([finetune_fabric.py:249](../../finetune_fabric.py:249)).
+기존 v0 probe(`finetune_fabric.py`)와의 차이: v0은 **사전학습 net의 LoRA finetune + map-L1 only**. 이 초안은 **전 파라미터 from-scratch + render loss 포함**. loader·renderer·21-ch 조립은 v0에서 그대로 재사용한다(finetune_fabric.py:249 — `../../finetune_fabric.py:249` (과거 경로·현재 파일 없음)).
 
 **데이터 소스(disk 확인).** `D:\MatSynth_cropped`는 없음. 실제 후보:
 - `D:\MatSynth_preprocessed` — 재질별 full-res(1–2K) `diffuse/specular/normal/roughness/metallic/basecolor/opacity.png` + metadata. specular workflow **직접** 사용 가능(§2-B 첫 경로).
@@ -27,7 +29,7 @@
 
 **측정 근거(disk 확인).** DeepMaterials specular = 상수 0.043(std≈0, chroma=0) — 전부 dielectric으로 고정. MatSynth specular = dielectric ~0.04, metal ~0.10–0.40+, `lerp(0.04, basecolor_lin, metallic)`이 MatSynth 자체 specular과 일치. 즉 specular F0 **범위·분포**가 이 전환의 핵심 실측 이득이다(개별 픽셀 색이 아니라 F0 span). 나머지(vignette 등)는 capture-side라 학습으로 못 건드린다.
 
-> **경고 — 현재 loader는 이 이득을 못 살린다.** `_build_svbrdf`([finetune_fabric.py:176](../../finetune_fabric.py:176))는 MatSynth diffuse/specular를 **sRGB 그대로** `*2-1`한다. MatSynth map은 sRGB 인코딩(specular 0.247 sRGB = 0.045 linear)이라, decode 없이 쓰면 GT specular가 **5–6× 과대**, diffuse도 과대. §2-A에서 수정.
+> **경고 — 현재 loader는 이 이득을 못 살린다.** `_build_svbrdf`(finetune_fabric.py:176 — `../../finetune_fabric.py:176` (과거 경로·현재 파일 없음))는 MatSynth diffuse/specular를 **sRGB 그대로** `*2-1`한다. MatSynth map은 sRGB 인코딩(specular 0.247 sRGB = 0.045 linear)이라, decode 없이 쓰면 GT specular가 **5–6× 과대**, diffuse도 과대. §2-A에서 수정.
 
 ---
 
@@ -71,15 +73,15 @@
 
 ## 4. 구성 / 샘플링 (distribution 수정)
 
-- **category-balanced.** v0의 `fabric_tilt`는 from-scratch에선 끈다(=1.0). 13 category 균등 기대질량([finetune_fabric.py:230](../../finetune_fabric.py:230)의 `balanced_weights` 재사용, tilt 제거).
-- **material-level split.** crop leakage 방지([finetune_fabric.py:214](../../finetune_fabric.py:214)). MatSynth official train/test 우선, val은 train에서 category별로.
+- **category-balanced.** v0의 `fabric_tilt`는 from-scratch에선 끈다(=1.0). 13 category 균등 기대질량(finetune_fabric.py:230 — `../../finetune_fabric.py:230` (과거 경로·현재 파일 없음)의 `balanced_weights` 재사용, tilt 제거).
+- **material-level split.** crop leakage 방지(finetune_fabric.py:214 — `../../finetune_fabric.py:214` (과거 경로·현재 파일 없음)). MatSynth official train/test 우선, val은 train에서 category별로.
 - **crop budget.** 재질당 crop 수를 category 크기에 반비례로 상한(대형 category가 step을 독점하지 않게).
 
 ---
 
 ## 5. crop & augmentation (resolution 수정, noise 배제)
 
-- **native-res random crop, 다운샘플 절대 금지.** uint8 읽고 crop window slice 후 float32([finetune_fabric.py:118](../../finetune_fabric.py:118)) — 4K resize OOM 회피 + thread detail 보존.
+- **native-res random crop, 다운샘플 절대 금지.** uint8 읽고 crop window slice 후 float32(finetune_fabric.py:118 — `../../finetune_fabric.py:118` (과거 경로·현재 파일 없음)) — 4K resize OOM 회피 + thread detail 보존.
 - **multi-scale는 기본 OFF.** 큰 window를 256으로 줄이면 그게 곧 다운샘플 = thread detail 소실(다운샘플 금지 규칙 위반). crops256은 이미 native 256이라 애초에 큰 window가 없음. scale-invariance가 실측에서 부족하다고 확인될 때만 preprocessed에서 native crop 크기를 바꿔 켠다.
 - **flip only** (h/v), normal 부호 동반 반전. rotation은 normal 재정의 필요하니 v0에선 생략.
 - **photometric noise 없음.** denoise 단 제외이므로 sensor noise·exposure jitter를 추정기 입력에 **넣지 않는다**. LDR 8-bit 양자화만 유지([nfplight_model.py:75](../../model/nfplight_model.py:75)). 실측 시 별도 학습된 denoiser가 앞단에서 정리 — 그 domain-gap은 noise 단의 책임(범위 밖).
@@ -91,18 +93,18 @@
 추론과 **동일 조립**을 재사용해 train/infer skew 0:
 
 - `render_input_images(svbrdf, toLDR=True)` — colocated GGX near/far 렌더 + LDR 양자화([nfplight_model.py:67](../../model/nfplight_model.py:67)).
-- `build_net_input` — scale-align → relation/log_relation → mask → 21-ch(18 albedo + 3 specular)([finetune_fabric.py:249](../../finetune_fabric.py:249)). grad 유지.
+- `build_net_input` — scale-align → relation/log_relation → mask → 21-ch(18 albedo + 3 specular)(finetune_fabric.py:249 — `../../finetune_fabric.py:249` (과거 경로·현재 파일 없음)). grad 유지.
 - syn geometry near=2.414 / far=10 사용(추정기가 syn net이므로). real geometry(4/12)는 real net 경로라 별건.
 
 즉 데이터 파이프라인 = **MatSynth GT 추출(§2·3) + on-the-fly colocated 렌더(§6)**. 저장은 GT map만; 입력은 매 step 렌더(디스크 절약 + geometry 변경 자유).
 
 ---
 
-## 7. Loss (from-scratch — v0의 map-L1-only를 넘어서) — ✅ 구현: [train_scratch.py](../../train_scratch.py)
+## 7. Loss (from-scratch — v0의 map-L1-only를 넘어서) — ✅ 구현: train_scratch.py — `../../train_scratch.py` (과거 경로·현재 파일 없음)
 
-v0는 "map-space L1 only, render loss는 설계상 제외"였다([finetune_fabric.py:6](../../finetune_fabric.py:6)). from-scratch는 render loss가 있어야 spec/rough가 잡힌다. `loss = map_loss + render_w·novel_light_render_loss`.
+v0는 "map-space L1 only, render loss는 설계상 제외"였다(finetune_fabric.py:6 — `../../finetune_fabric.py:6` (과거 경로·현재 파일 없음)). from-scratch는 render loss가 있어야 spec/rough가 잡힌다. `loss = map_loss + render_w·novel_light_render_loss`.
 
-- **map loss**: per-map L1(n,d,r,s), normal은 unit-vector 공간에서([finetune_fabric.py:265](../../finetune_fabric.py:265) 재사용).
+- **map loss**: per-map L1(n,d,r,s), normal은 unit-vector 공간에서(finetune_fabric.py:265 — `../../finetune_fabric.py:265` (과거 경로·현재 파일 없음) 재사용).
 - **novel-light render loss**: 예측·GT svbrdf를 **입력엔 없던 랜덤 광원 K개**로 재렌더 후 비교(`render_colocated`, log1p tonemap으로 highlight 압축). colocated near/far 1쌍으론 미관측인 specular lobe·roughness를 **다른 조명에서 일치하도록** 강제. **repeat-capture 일관성(§9)과 같은 의도** — "조명 바꿔도 같은 재질". 추론은 여전히 near/far colocated이므로 이건 측정이 아니라 **prior 강화**.
 - **specular(F0)**: map loss의 `s` 항이 담당. MatSynth F0 **범위**(dielectric 0.04 ↔ metal 0.4+)를 감독 — 이득은 hue 아니라 **F0 magnitude 분포**(DeepMaterials 0.043 고정 대비). 유색 금속엔 hue 항 추가 여지.
 - **입력 열화 augmentation**은 아직 미배선(§10 syn-real gap lever) — `train_scratch.py`의 aug hook에 colored flash·vignette·LDR를 붙이는 자리 표시만.
@@ -136,12 +138,12 @@ real을 학습·supervision 소스로는 쓰지 않음(GT 없음). aug fidelity�
 
 ## 11. 다음 한 걸음
 
-1. ✅ **완료·검증**: crops256 loader [data/matsynth_crops.py](../../data/matsynth_crops.py) + 사전점검 [test_crops_loader.py](../../test_crops_loader.py). 4-check ALL PASS(가마 decode·유도·normal-Y·round-trip). full train 전 재실행:
+1. ✅ **완료·검증**: crops256 loader data/matsynth_crops.py — `../../data/matsynth_crops.py` (과거 경로·현재 파일 없음) + 사전점검 test_crops_loader.py — `../../test_crops_loader.py` (과거 경로·현재 파일 없음). 4-check ALL PASS(가마 decode·유도·normal-Y·round-trip). full train 전 재실행:
    ```
    python test_crops_loader.py --crops D:/MatSynth_crops256 --prep D:/MatSynth_preprocessed --loadpath checkpoints/net_g_syn.pth
    ```
 2. §3 재질 필터로 `keep_list.txt`(opacity<1·degenerate·noise 재질 제외, 버린 수 로그). crops256는 opacity 키가 없으니 preprocessed opacity.png 참조 또는 생략.
-3. ✅ **완료·smoke PASS**: from-scratch 학습 [train_scratch.py](../../train_scratch.py) — `ScratchModel`(random-init net, 렌더 machinery 재사용) + map loss + **novel-light render loss**(§7) + category-balanced(no tilt) + material-level split + stratified eval(Metal 분리). 2-step smoke: loss 2.48→2.22 finite. 실행:
+3. ✅ **완료·smoke PASS**: from-scratch 학습 train_scratch.py — `../../train_scratch.py` (과거 경로·현재 파일 없음) — `ScratchModel`(random-init net, 렌더 machinery 재사용) + map loss + **novel-light render loss**(§7) + category-balanced(no tilt) + material-level split + stratified eval(Metal 분리). 2-step smoke: loss 2.48→2.22 finite. 실행:
    ```
    python train_scratch.py --crops D:/MatSynth_crops256 --out checkpoints/net_g_matsynth.pth --steps 60000 --batch 8
    ```

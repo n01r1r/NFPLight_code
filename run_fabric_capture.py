@@ -1022,9 +1022,19 @@ def main() -> None:
     phase.add_argument("--prepare-only", action="store_true", help="write fresh aligned per-frame archives and visual review assets")
     phase.add_argument("--prepared", type=Path, nargs="?", const=DEFAULT_OUTPUT, metavar="DIR",
                        help="infer from a fresh prepared directory after root_review.json is recorded")
+    phase.add_argument("--refresh-no-npz", action="store_true",
+                       help="refresh all groups in memory from preserved camera RGB; save PNG/JSON/HTML only")
+    parser.add_argument("--archive-root", type=Path,
+                        help="read-only root containing the preserved original-resolution FP32 camera RGB")
     parser.add_argument("--frame-index", type=int, default=0,
                         help="compatibility argument; the fixed burst workflow uses frame 00 as its reference")
     args = parser.parse_args()
+    if args.refresh_no_npz:
+        if not args.all_groups or args.out is None or args.archive_root is None:
+            parser.error("--refresh-no-npz requires --all-groups, --out, and --archive-root")
+        from capture_processing.memory_refresh import refresh_capture_memory
+        refresh_capture_memory(args.out, args.archive_root, CAPTURE_GROUPS, args.checkpoint, device=args.device)
+        return
     if not args.prepare_only and args.prepared is None:
         parser.error("choose --prepare-only or --prepared after root visual review")
     if args.all_groups:

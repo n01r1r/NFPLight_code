@@ -1,5 +1,7 @@
 > Historical research record. Current capture contract: [CAPTURE_REQUIREMENTS.md](../CAPTURE_REQUIREMENTS.md). Current commands: [README.md](../../README.md). Code citations and run status below describe their recorded version; removed code and old line numbers are not current implementation claims.
 
+**역사 문서:** 현재학습은 [scheduler 정책](../TRAINING_SCHEDULER_POLICY.md)·[현재 상태](../CURRENT_TRAINING_STATE.md), capture는 [현재 요구사항](../CAPTURE_REQUIREMENTS.md)을 따른다. 아래기본값·명령은당시기록이며현재실행지시가아니다. Doctor는이동된로컬link만보정하고없는역사산출물은없음으로표시했다.
+
 # MatSynth Fabric 전용 NFPLight from-scratch 학습 설계
 
 ## 2026-09-14 최신 실행 결정: 모든 full 실험 100k + 100k
@@ -150,7 +152,7 @@ checkpoint 정책은 기본 `--checkpoint-every 1000`으로 바꾸어 validation
 
 **과거 검토 기록:** [입출력·엔지니어링 검토](../../results/fabric_io_review_20260912/review.md)는 RAW 변경 전 상태와 central-scale invalid, normal z, HDR loss, checkpoint 비정상 종료 등의 근거를 보존한다. 최신 수정·학습 상태는 위 RAW 실행 계약과 실행 결과를 우선한다.
 
-현재 실행 경로는 [train_fabric.py](../../train_fabric.py), 고정 데이터는 [manifest](../../data/fabric_native256_v1/manifest.json), 실제 검증 결과는 [구현 보고서](../../results/fabric_training_implementation/report.md)를 따른다. **train 338 / validation 38 / official test 5**, 재질별 native 256 crop 16개를 생성했다. 아래 §1–8은 구현 전 조사 기록으로 보존하며, 현재 결정과 완료 상태는 이 문서 상단 및 구현 보고서가 우선한다.
+현재 실행 경로는 [train_fabric.py](../../train_fabric.py), 고정 데이터는 manifest — `../../data/fabric_native256_v1/manifest.json` (과거 경로·현재 파일 없음), 실제 검증 결과는 [구현 보고서](../../results/fabric_training_implementation/report.md)를 따른다. **train 338 / validation 38 / official test 5**, 재질별 native 256 crop 16개를 생성했다. 아래 §1–8은 구현 전 조사 기록으로 보존하며, 현재 결정과 완료 상태는 이 문서 상단 및 구현 보고서가 우선한다.
 
 ### 2026-09-12 구현 계약
 
@@ -218,18 +220,18 @@ train 458개 중 **73개는 metadata.source=`deschaintre_2020`**, 나머지는 3
 
 | 부분 | 실제 상태와 판단 | 필요한 조치 |
 |---|---|---|
-| [ScratchModel](C:/workspace/NFPLight_code/train_scratch.py:41) | `init_network()`가 fresh `TwoBranchNet()` 생성. 64,102,378개 parameter, 21채널 | 유지. resume 없는 새 run에서 pretrained 로드가 없음을 검증 |
+| ScratchModel — `C:/workspace/NFPLight_code/train_scratch.py:41` (과거 경로·현재 파일 없음) | `init_network()`가 fresh `TwoBranchNet()` 생성. 64,102,378개 parameter, 21채널 | 유지. resume 없는 새 run에서 pretrained 로드가 없음을 검증 |
 | [TwoBranchNet](C:/workspace/NFPLight_code/network/nfplight_net.py:69) | 18채널 appearance branch + 3채널 relation/mask branch, 10채널 출력 | 구조 유지. DenoiseNet과 legacy33 경로 제외 |
-| [crop loader](C:/workspace/NFPLight_code/data/matsynth_crops.py:50) | gamma 2.2 decode 후 metallic workflow로 d/s 유도. D4 augmentation 구현 | 변환·회전 기능은 재사용. 원본 d/s를 쓰는 cache와 schema를 구분 |
-| [기존 PNG loader](C:/workspace/NFPLight_code/finetune_fabric.py:245) | diffuse/specular를 decode 없이 정규화 | 원본 PNG용으로 그대로 쓰면 안 됨 |
-| [21채널 입력 조립](C:/workspace/NFPLight_code/finetune_fabric.py:330) | 실제 호출은 `toLDR=False` | 문서의 “LDR 양자화”와 불일치. 공통 입력 함수와 명시적 설정 필요 |
+| crop loader — `C:/workspace/NFPLight_code/data/matsynth_crops.py:50` (과거 경로·현재 파일 없음) | gamma 2.2 decode 후 metallic workflow로 d/s 유도. D4 augmentation 구현 | 변환·회전 기능은 재사용. 원본 d/s를 쓰는 cache와 schema를 구분 |
+| 기존 PNG loader — `C:/workspace/NFPLight_code/finetune_fabric.py:245` (과거 경로·현재 파일 없음) | diffuse/specular를 decode 없이 정규화 | 원본 PNG용으로 그대로 쓰면 안 됨 |
+| 21채널 입력 조립 — `C:/workspace/NFPLight_code/finetune_fabric.py:330` (과거 경로·현재 파일 없음) | 실제 호출은 `toLDR=False` | 문서의 “LDR 양자화”와 불일치. 공통 입력 함수와 명시적 설정 필요 |
 | [relation 정규화](C:/workspace/NFPLight_code/model/nfplight_model.py:102) | `torch.min/max(feature)`가 배치 전체에 적용 | **우선 수정:** sample별 C/H/W reduction. train·infer 모두 같은 함수를 사용 |
-| [현재 학습 일정](C:/workspace/NFPLight_code/train_scratch.py:246) | AdamW, 기본 constant 2e-4, 선택적 delayed cosine | 논문의 Adam + stage별 cosine으로 구성 가능하게 수정 |
-| [render loss](C:/workspace/NFPLight_code/train_scratch.py:199) | raw linear-HDR L1. camera=view=light인 랜덤 위치 K개 | “log1p”, “off-colocated”라는 이전 설명은 실제 코드와 다름. 현재 방식은 baseline으로 재사용 가능 |
-| [validation](C:/workspace/NFPLight_code/train_scratch.py:220) | material마다 crop 0만 사용, render light는 매번 새 random | 고정 crop 여러 개와 독립된 eval RNG 사용 |
-| [best/test 연결](C:/workspace/NFPLight_code/train_scratch.py:500) | 마지막 메모리 weight로 최종 test. 저장한 best를 다시 읽지 않음 | test 직전에 선택한 checkpoint를 strict load하고 hash 기록 |
-| [공식 paired eval](C:/workspace/NFPLight_code/eval_paired_official.py:108) | 전체 89개·전체 category를 고정 검증 | 검증 guardrail을 풀지 말고 Fabric manifest용 평가를 별도 구성 |
-| [full resume](C:/workspace/NFPLight_code/train_scratch.py:393) | optimizer/scheduler/RNG 저장은 있음. 보통 경로의 sampler 위치는 복원 안 됨 | 실험 config·dataset hash·sampler/aug 상태·stage를 함께 저장 |
+| 현재 학습 일정 — `C:/workspace/NFPLight_code/train_scratch.py:246` (과거 경로·현재 파일 없음) | AdamW, 기본 constant 2e-4, 선택적 delayed cosine | 논문의 Adam + stage별 cosine으로 구성 가능하게 수정 |
+| render loss — `C:/workspace/NFPLight_code/train_scratch.py:199` (과거 경로·현재 파일 없음) | raw linear-HDR L1. camera=view=light인 랜덤 위치 K개 | “log1p”, “off-colocated”라는 이전 설명은 실제 코드와 다름. 현재 방식은 baseline으로 재사용 가능 |
+| validation — `C:/workspace/NFPLight_code/train_scratch.py:220` (과거 경로·현재 파일 없음) | material마다 crop 0만 사용, render light는 매번 새 random | 고정 crop 여러 개와 독립된 eval RNG 사용 |
+| best/test 연결 — `C:/workspace/NFPLight_code/train_scratch.py:500` (과거 경로·현재 파일 없음) | 마지막 메모리 weight로 최종 test. 저장한 best를 다시 읽지 않음 | test 직전에 선택한 checkpoint를 strict load하고 hash 기록 |
+| 공식 paired eval — `C:/workspace/NFPLight_code/eval_paired_official.py:108` (과거 경로·현재 파일 없음) | 전체 89개·전체 category를 고정 검증 | 검증 guardrail을 풀지 말고 Fabric manifest용 평가를 별도 구성 |
+| full resume — `C:/workspace/NFPLight_code/train_scratch.py:393` (과거 경로·현재 파일 없음) | optimizer/scheduler/RNG 저장은 있음. 보통 경로의 sampler 위치는 복원 안 됨 | 실험 config·dataset hash·sampler/aug 상태·stage를 함께 저장 |
 | `finetune_fabric*.py`, `exp_denoise.py`, autoresearch scripts | 이전 LoRA/실측/denoise/전체 category 실험용 | 새 from-scratch 실행 경로로 사용하지 않음 |
 
 배치 의존성은 재현했다. 동일한 작은 feature를 단독 정규화했을 때와 다른 feature와 배치로 묶었을 때 최대 차이가 **0.9230769**였다. 실제 데이터 성능 저하량을 측정한 수치는 아니지만, batch 크기와 구성에 따라 입력 의미가 변하는 코드 결함을 직접 보여준다. 수정 후 acceptance는 **같은 이미지의 단독·배치 feature 일치**다.

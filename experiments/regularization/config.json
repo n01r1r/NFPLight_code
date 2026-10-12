@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "experiment_id": "regularization_probe",
+  "output": {
+    "default_directory": "artifacts/regularization_probe_20261008"
+  },
+  "baseline": {
+    "config": "experiments/bottleneck_fc/config.json",
+    "historical_run": "artifacts/bottleneck_fc_baseline_20261008",
+    "extension_run": "artifacts/bottleneck_fc_baseline_extended_20261008"
+  },
+  "design": {
+    "dropout_probability": 0.1,
+    "conditions": [
+      {
+        "id": "baseline",
+        "d4": false,
+        "dropout": false,
+        "source": "existing_baseline_extension"
+      },
+      {
+        "id": "d4_only",
+        "d4": true,
+        "dropout": false,
+        "source": "train"
+      },
+      {
+        "id": "dropout_only",
+        "d4": false,
+        "dropout": true,
+        "source": "train"
+      },
+      {
+        "id": "d4_dropout",
+        "d4": true,
+        "dropout": true,
+        "source": "train"
+      }
+    ]
+  },
+  "training": {
+    "seeds": [
+      7,
+      19,
+      31
+    ],
+    "map_cap": 10000,
+    "render_cap": 3000,
+    "consecutive_intervals": 10,
+    "relative_improvement_threshold": 0.005,
+    "d4_seed_offset": 20000
+  },
+  "provenance": {
+    "identity_method": "resolved path, file size, and mtime_ns; no content hashes",
+    "source_files": [
+      "experiments/regularization/__init__.py",
+      "experiments/regularization/config.py",
+      "experiments/regularization/run.py",
+      "experiments/regularization/manage.py",
+      "experiments/regularization/report.py",
+      "experiments/bottleneck_fc/config.py",
+      "experiments/bottleneck_fc/pipeline.py",
+      "model/nfplight_model.py",
+      "network/nfplight_net.py",
+      "network/base_net.py",
+      "data/fabric.py",
+      "utils/render_util.py",
+      "utils/__init__.py"
+    ]
+  },
+  "scientific_settings": {
+    "dataset": {
+      "manifest": "C:/MatSynth_PRIMA_Fabric/manifests/fabric_leather_training_manifest.jsonl",
+      "shard_path_base": "repo_root",
+      "train_split": "train",
+      "heldout_split": "val",
+      "categories": [
+        "Fabric",
+        "Leather"
+      ],
+      "materials_per_category": 4,
+      "train_crops": [
+        0,
+        8
+      ],
+      "unseen_crop": 4,
+      "heldout_crop": 4,
+      "crops_per_shard": 16,
+      "cache_shards": 4,
+      "map_keys": [
+        "normal",
+        "diffuse",
+        "roughness",
+        "specular"
+      ],
+      "diffuse_decode_gamma": 2.2,
+      "normal_decode": "uint8/127.5-1 then unit normalize",
+      "roughness_decode": "uint8/255",
+      "specular_target": 0.04
+    },
+    "backbone": {
+      "name": "TwoBranchNet",
+      "width": 32,
+      "middle_blocks": 4,
+      "encoder_blocks": [
+        2,
+        2,
+        4
+      ],
+      "decoder_blocks": [
+        2,
+        2,
+        2
+      ],
+      "input_channels": 21,
+      "output_channels": 10,
+      "input_resolution": 256
+    },
+    "baseline_parameters": 7609834,
+    "sampling": {
+      "batch_size": 4,
+      "uniform_selection": "manifest-order evenly spaced indices; not loss-guided",
+      "sample_order": "Python random.Random(seed+sample_order_seed_offset), paired across arms",
+      "sample_order_seed_offset": 10000,
+      "d4_augmentation": false
+    },
+    "optimization": {
+      "map_learning_rate": 0.0005,
+      "render_learning_rate": 0.0001,
+      "learning_rate_schedule": "constant within each stage",
+      "adam_betas": [
+        0.9,
+        0.999
+      ],
+      "fresh_adam_at_render_stage": true,
+      "gradient_clip_norm": 1.0,
+      "render_loss_weight": 1.0
+    },
+    "evaluation": {
+      "checkpoint_interval": 100,
+      "evaluation_interval": 100
+    },
+    "loss": {
+      "map_terms": [
+        "unit_xyz_normal_l1",
+        "diffuse_rgb_l1",
+        "roughness_l1"
+      ],
+      "map_aggregation": "equal_mean",
+      "normal_degrees": "evaluation_only",
+      "invalid_or_nonfinite": "fail"
+    },
+    "rendering": {
+      "feature_version": "raw_calibrated_gain9_v3",
+      "precision": "float32",
+      "amp": false,
+      "tf32": false,
+      "near_distance": 4.0,
+      "far_distance": 12.0,
+      "gain": 9.0,
+      "f0": 0.04,
+      "training_lights": {
+        "radius": 4.0,
+        "theta_degrees": [
+          5,
+          10,
+          20,
+          30,
+          45
+        ],
+        "phi_degrees": [
+          0,
+          45,
+          90,
+          135,
+          180,
+          225,
+          270,
+          315
+        ],
+        "view": [
+          0.0,
+          0.0,
+          2.75
+        ]
+      },
+      "novel_lights": {
+        "radius": 4.0,
+        "theta_degrees": [
+          12,
+          27,
+          40
+        ],
+        "phi_degrees": [
+          22.5,
+          112.5,
+          202.5,
+          292.5
+        ],
+        "view": [
+          0.0,
+          0.0,
+          2.75
+        ]
+      }
+    },
+    "runtime": {
+      "device": "cuda",
+      "torch_num_threads": 4,
+      "cudnn_deterministic": true,
+      "cudnn_benchmark": false
+    }
+  }
+}

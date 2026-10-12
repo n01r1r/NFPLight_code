@@ -1,0 +1,25 @@
+{
+  "policy_version": 1,
+  "parent_run_directory": "artifacts/bottleneck_fc_baseline_20261008",
+  "output_directory": "artifacts/bottleneck_fc_baseline_extended_20261008",
+  "arm_id": "baseline",
+  "seeds": [7, 19, 31],
+  "map_total_limit": 10000,
+  "render_total_limit": 3000,
+  "evaluation_interval": 100,
+  "checkpoint_interval": 100,
+  "sample_order_seed_offset": 10000,
+  "early_stop": {
+    "consecutive_intervals": 10,
+    "relative_improvement_threshold": 0.005,
+    "relative_improvement_formula": "(previous-current)/max(abs(previous),1e-12)",
+    "map_metric": "heldout.ndr_mean",
+    "render_metric": "heldout.render_l1"
+  },
+  "checkpoint_archive": "seed{seed}_baseline/map_stage_end.pt",
+  "stage_order": "continue_map_from_archived_map1000_adam_if_map_not_plateaued; then fresh_adam_render; otherwise continue_original_render300_adam",
+  "identity_method": "resolved path, file size, and mtime_ns; no content hashes",
+  "original_results_preserved": true,
+  "other_arms_authorized": false,
+  "approved_by_user": true
+}

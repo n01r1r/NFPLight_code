@@ -37,6 +37,72 @@ from capture_processing.report import (
 
 
 class CaptureReportTests(unittest.TestCase):
+    def test_all_active_formulas_are_valid_offline_mathml(self):
+        import re
+        import xml.etree.ElementTree as ET
+        from capture_processing.report import _AUTHOR_REAL_FORMULAS
+        from capture_processing.report_math import _AUTHOR, formula_html, math_prose
+        self.assertEqual(set(_AUTHOR), {row[0] for row in _AUTHOR_REAL_FORMULAS})
+        for title, lhs, rhs, _, _ in _AUTHOR_REAL_FORMULAS:
+            markup = formula_html(title, lhs, rhs, author=True)
+            self.assertNotIn('<code>', markup)
+            equations = re.findall(r'<math\b.*?</math>', markup)
+            self.assertTrue(equations, title)
+            for equation in equations:
+                ET.fromstring(equation)
+        self.assertIn('<mfrac>', math_prose('R_M = |I_N − K I_F| / C_M'))
+
+    def test_scalar_gain_is_numeric_and_coefficient_ticks_keep_actual_range(self):
+        manifest = {"conditions": {"both": {"arrays": {
+            "far_gain_scalar": {"shape": [1, 1, 1], "min": 6.312118, "max": 6.312118, "mean": 6.312118}}}}}
+        ranges = {"far_gain_scalar": [6.312118, 6.312118000001], "time_co_map": [0.955, 0.999]}
+        configs = {key: {"range": value, "rgb": False} for key, value in ranges.items()}
+        page = _make_html(manifest, list(ranges), ranges, configs, {}, [])
+        self.assertIn("K_L = 6.312118 =", page)
+        self.assertIn('<mn>6.312118</mn><mo>=</mo><mfrac>', page)
+        self.assertIn('data-latex=', page)
+        self.assertIn('118:138, 118:138', page)
+        self.assertIn("showScalarValue(key,mode,sc)", page)
+        self.assertIn("image.style.display=constant?'none':'block'", page)
+        scales = json.JSONDecoder().raw_decode(page.split("const scales=", 1)[1])[0]
+        self.assertEqual(scales["time_co_map"]["range"], [0.955, 0.999])
+
+    def test_gained_far_display_uses_fixed_unit_range(self):
+        values = np.full((2, 2, 3), 0.1, dtype=np.float32)
+        before = values.copy()
+        with tempfile.TemporaryDirectory() as directory:
+            for key in ("near_input_clipped", "original_copy_far_gained_clipped",
+                        "original_copy_far_gained_unclipped", "far_time_clipped"):
+                low, high, cmap = _display_contract(key, (0.00827, 0.23816))
+                self.assertEqual((low, high), (0.0, 1.0))
+                target = Path(directory) / (key + ".png")
+                _render_array(values, key, target, (low, high), cmap)
+                np.testing.assert_array_equal(np.asarray(Image.open(target)), 26)
+        np.testing.assert_array_equal(values, before)
+
+    def test_numerator_display_preserves_absolute_difference_magnitude(self):
+        values = np.full((2, 2, 1), 0.0255, dtype=np.float32)
+        with tempfile.TemporaryDirectory() as directory:
+            for key in ("abs_diff", "abs_diff_c0", "mean_abs_diff", "mean_abs_diff_rgb"):
+                low, high, cmap = _display_contract(key, (0.0036, 0.0925))
+                self.assertEqual((low, high), (0.0, 1.0))
+                target = Path(directory) / (key + ".png")
+                _render_array(values, key, target, (low, high), cmap)
+                self.assertLessEqual(int(np.asarray(Image.open(target)).max()), 7)
+
+    def test_signed_difference_has_fixed_heatmap_range_and_correct_sign(self):
+        values = np.array([[[-1.0], [0.0], [1.0]]], dtype=np.float32)
+        with tempfile.TemporaryDirectory() as directory:
+            for key in ("near_minus_scaled_far", "signed_diff_c1", "time_clip_delta"):
+                low, high, cmap = _display_contract(key, (-0.04, 0.04))
+                self.assertEqual((low, high, cmap), (-1.0, 1.0, "RdBu_r"))
+                target = Path(directory) / (key + ".png")
+                _render_array(values, key, target, (low, high), cmap)
+                pixels = np.asarray(Image.open(target))[0]
+                self.assertGreater(int(pixels[0, 2]), int(pixels[0, 0]))
+                self.assertGreater(int(pixels[2, 0]), int(pixels[2, 2]))
+                self.assertGreater(int(pixels[1].min()), 240)
+
     def test_author_difference_display_has_paper_sign_and_matching_stats(self):
         signed = np.array([[[-0.3, 0.1, 0.2]]], dtype=np.float32)
         archive = {"signed_diff": signed}
@@ -730,3 +796,16 @@ class CaptureReportTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_gain9_feature_semantics_and_header_do_not_claim_patch_estimation():
+    from capture_processing.report import _feature_groups, _feature_channel_names, _make_html
+    contract={"feature_version":"raw_calibrated_gain9_v3","feature_channels":21,"capture_gain_mode":"checkpoint"}
+    groups,scalars,value_range=_feature_groups(21,contract)
+    assert groups[2][0]=="F × g" and scalars[-1]==("valid mask",20)
+    assert value_range==(-1,1) and len(_feature_channel_names(contract))==21
+    manifest={"model_contract":contract,"conditions":{"both":{"arrays":{"far_gain_scalar":{"mean":9,"min":9,"max":9}}}}}
+    page=_make_html(manifest,["near_input_clipped"],{"near_input_clipped":[0,1]},
+                    {"near_input_clipped":{"range":[0,1],"rgb":True}}, {}, [])
+    assert 'K_L = 9' in page and 'checkpoint 고정 gain' in page
+    assert '중앙 20×20' not in page and '118:138' not in page

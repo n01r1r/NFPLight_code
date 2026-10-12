@@ -32,7 +32,7 @@ from data.fabric import (
     file_hash,
     write_json,
 )
-from model.nfplight_model import NFPLightModel
+from model.nfplight_model import NFPLightModel, CURRENT_RAW_FEATURE_VERSION, INPUT_NEAR, INPUT_FAR, INPUT_GAIN
 from model.normal_head import NORMAL_HEADS, POLE_EPS, apply_normal_head
 from network.nfplight_net import TwoBranchNet
 
@@ -46,15 +46,15 @@ class ScratchModel(NFPLightModel):
 
 MAP_NAMES = ("normal", "diffuse", "roughness", "specular")
 MAP_SLICES = (slice(0, 3), slice(3, 6), slice(6, 7), slice(7, 10))
-FEATURE_VERSION = "raw_calibrated_v2"
+FEATURE_VERSION = CURRENT_RAW_FEATURE_VERSION
 CHECKPOINT_FORMAT = "nfplight.fabric.training.v2"
 LOSS_PROBE_SEED = 10000
 TEST_PROBE_SEED = 20000
 RENDER_LOSS_LIGHT_DISTANCE = 4.0
 RENDER_LOSS_POLAR_DEGREES = 45.0
 RENDER_LOSS_TOP_VIEW_DISTANCE = 2.75
-RENDER_NEAR = 2.414
-RENDER_FAR = 10.0
+RENDER_NEAR = INPUT_NEAR
+RENDER_FAR = INPUT_FAR
 F0_BASELINE = 0.04
 NORMAL_EPS = 1e-8
 NORMAL_LOSSES = ("l1", "cosine", "phi_theta", "geodesic")
@@ -1020,7 +1020,7 @@ def build_contract(args, manifest_path):
                                  "selection_metrics": "unchanged_normalized_map_l1"},
              "data_policy": data_policy,
              "input": {"feature_version": FEATURE_VERSION, "quantize": False, "gamma": 0,
-                       "near": RENDER_NEAR, "far": RENDER_FAR, "lamp_intensity": 16,
+                       "near": RENDER_NEAR, "far": RENDER_FAR, "fixed_gain": INPUT_GAIN, "lamp_intensity": 16,
                        "denoiser": False, "augmentation": augmentation,
                        "loss_probe_seed": LOSS_PROBE_SEED},
             "environment": _environment()}
@@ -1111,7 +1111,7 @@ def _validate_render_restart_source(source_path, current_contract):
     if not isinstance(payload, dict) or payload.get("format") != CHECKPOINT_FORMAT:
         raise ValueError("render restart source is not a Fabric training v2 checkpoint")
     if payload.get("feature_version") != FEATURE_VERSION:
-        raise ValueError("render restart source does not use raw_calibrated_v2")
+        raise ValueError("render restart source does not use raw_calibrated_gain9_v3")
     state = payload.get("state")
     if not isinstance(state, dict) or (state.get("stage"), state.get("step")) != ("render", 0):
         raise ValueError("render restart source must be a step-0 render boundary")
@@ -1297,7 +1297,7 @@ def save_checkpoint(path, model, contract, state, *, optimizer=None, rng=None, m
         raise ValueError("D4 resumable checkpoints require augmentation_rng state")
     feature_version = getattr(model, "feature_version", FEATURE_VERSION)
     if contract.get("input", {}).get("feature_version") == FEATURE_VERSION and feature_version != FEATURE_VERSION:
-        raise ValueError("RAW Fabric checkpoints must use raw_calibrated_v2")
+        raise ValueError("RAW Fabric checkpoints must use raw_calibrated_gain9_v3")
     payload = {"format": CHECKPOINT_FORMAT, "feature_version": getattr(model, "feature_version", FEATURE_VERSION),
                "params": copy.deepcopy(model.net_g.state_dict()), "contract": copy.deepcopy(contract),
                "state": copy.deepcopy(state), "metrics": copy.deepcopy(metrics),
@@ -1325,7 +1325,7 @@ def load_checkpoint(path, model, contract, *, optimizer=None, rng=None, augmenta
     if not isinstance(payload, dict) or payload.get("format") != CHECKPOINT_FORMAT:
         raise ValueError("not a Fabric training v2 checkpoint")
     if contract.get("input", {}).get("feature_version") == FEATURE_VERSION and payload.get("feature_version") != FEATURE_VERSION:
-        raise ValueError("RAW Fabric checkpoints must use raw_calibrated_v2")
+        raise ValueError("RAW Fabric checkpoints must use raw_calibrated_gain9_v3")
     schedule_migration = False
     performance_migration = False
     if payload.get("contract") != contract and allow_render_schedule_migration:
@@ -1545,7 +1545,13 @@ def _write_validation(output, state, latest=None):
     write_json(output / "validation.json", value)
 
 
+def require_scheduler_ready(*, historical_resume=False, smoke=False):
+    if not historical_resume and not smoke:
+        raise RuntimeError("New training is blocked: ReduceLROnPlateau is not implemented; see docs/TRAINING_SCHEDULER_POLICY.md")
+
+
 def run(args):
+    require_scheduler_ready(historical_resume=bool(args.resume), smoke=bool(getattr(args, "smoke", False)))
     positive = ("map_steps", "render_steps", "batch", "accumulate", "lights", "val_every", "log_every",
                 "eval_crops", "test_crops", "test_lights", "render_ramp", "checkpoint_every",
                 "log_flush_every", "eval_batch_size")
@@ -1745,7 +1751,7 @@ def run(args):
                     "buffered_train_log",
                     "fp16_autocast_grad_scaling",
                 ],
-                "scientific_contract": "unchanged_raw_calibrated_v2_float32_linear_no_augmentation",
+                "scientific_contract": "raw_calibrated_gain9_v3_float32_linear_no_augmentation",
             }
             contract["performance_migration"] = performance_record
             write_json(output / "config.json", contract)

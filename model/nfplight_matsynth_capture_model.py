@@ -18,7 +18,7 @@ from network.nfplight_net import TwoBranchNet
 EXPECTED_INPUT_SHAPE = (6, 256, 256)
 EXPECTED_OUTPUT_SHAPE = (10, 256, 256)
 INPUT_RANGE_TOLERANCE = 1e-5
-CHECKPOINT_WRAPPER_KEYS = ("params", "state_dict")
+CHECKPOINT_WRAPPER_KEYS = ("params", "state_dict", "net_g")
 CHECKPOINT_PREFIXES = {"module", "_orig_mod"}
 
 
@@ -61,7 +61,7 @@ class MatSynthCaptureModel(MatSynthBaseModel):
     """Run the synthetic 21-channel estimator on linear real captures.
 
     The ``test`` method assembles the features for the 21-channel
-    relation-map assembly and synthetic geometry (near=2.414, far=10).  The
+    relation-map assembly and the geometry selected by checkpoint metadata.  The
     input contract is ``[B,6,256,256]`` linear values in ``[0,1]`` up to the
     named tolerance.  No DenoiseNet is constructed or consulted.
     """
@@ -70,6 +70,9 @@ class MatSynthCaptureModel(MatSynthBaseModel):
         if getattr(args, "image_size", None) != 256:
             raise ValueError("matsynth21 inference requires --image_size 256")
         super().__init__(args)
+        # Network metadata selects geometry; rebuild after loading the checkpoint.
+        self.init_distance()
+        self.init_rendering()
 
     def init_network(self):
         """Create and strictly load the 21-channel network."""
@@ -84,14 +87,17 @@ class MatSynthCaptureModel(MatSynthBaseModel):
         checkpoint = torch.load(load_path, map_location="cpu", weights_only=False)
         self.feature_version = checkpoint_feature_version(checkpoint)
         self.normal_head = checkpoint_normal_head(checkpoint)
+        self.unit_normal = (checkpoint.get("normal_decoder") in {"unit normalization before loss/inference", "unit XYZ"}
+                            or checkpoint.get("package") == "full_dataset_suite")
+        self.fixed_f0 = checkpoint.get("contract", {}).get("f0_input_and_both_render_branches")
         requested_mode = getattr(self.args, "input_mode", None)
         if requested_mode is None:
             requested_mode = getattr(self.args, "input_encoding", None)
-        if self.feature_version == "raw_calibrated_v2" and str(requested_mode).lower() in {
+        if self.feature_version in {"raw_calibrated_v2", "raw_calibrated_gain9_v3"} and str(requested_mode).lower() in {
             "gamma22", "gamma22_png", "gamma22_compat", "legacy_png", "encoded_png"
         }:
             raise ValueError(
-                "raw_calibrated_v2 checkpoints require linear_rgb input; gamma22 is incompatible"
+                "RAW calibrated checkpoints require linear_rgb input; gamma22 is incompatible"
             )
         state_dict = normalize_checkpoint_state_dict(checkpoint)
         net.load_state_dict(deepcopy(state_dict), strict=True)
@@ -101,12 +107,19 @@ class MatSynthCaptureModel(MatSynthBaseModel):
         self.net_g.eval()
         with torch.no_grad():
             inputs, self.relation_map, self.aligned_far_img = self.build_features(
-                self.inputs
+                self.inputs, gain_mode=getattr(self.args, 'capture_gain_mode', 'checkpoint')
             )
             raw_prediction = self.net_g(inputs)
             self.pred_svbrdf = apply_normal_head(
                 raw_prediction, normal_head=getattr(self, "normal_head", "xyz")
             )
+            if getattr(self, "unit_normal", False):
+                if not torch.isfinite(self.pred_svbrdf).all() or (self.pred_svbrdf[:, :3].norm(dim=1) < 1e-8).any():
+                    raise FloatingPointError("invalid predicted normal")
+                normal = torch.nn.functional.normalize(self.pred_svbrdf[:, :3], dim=1)
+                self.pred_svbrdf = torch.cat((normal, self.pred_svbrdf[:, 3:]), dim=1)
+            # Fixed F0 belongs to rendering; preserve the estimator specular head.
+
 
     def feed_data(self, data, random=True):
         """Validate and transfer a batch of linear capture tensors."""

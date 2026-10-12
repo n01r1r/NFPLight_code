@@ -186,3 +186,18 @@ def test_legacy33_identity_fallback_duplicates_original_rgb_slots():
     torch.testing.assert_close(trace["original_copy_pair_6"], original, rtol=0, atol=0)
     torch.testing.assert_close(features[:, 0:6], features[:, 6:12], rtol=0, atol=0)
     assert features.shape == (1, 33, 256, 256)
+
+
+def test_explicit_fixed_gain_preserves_identity_copy():
+    x = torch.full((1, 6, 256, 256), .02, dtype=torch.float32)
+    x[:, :3] = .10
+    coefficient, time_map, maximum = legacy_geometry(256, "cpu")
+    _, default_trace = assemble_legacy33_features(x, x, coefficient, time_map, maximum)
+    features, trace = assemble_legacy33_features(x, x, coefficient, time_map, maximum, fixed_gain=9.)
+    torch.testing.assert_close(default_trace["far_gain_scalar"], torch.tensor([[[[5.]]]]))
+    assert trace["far_gain_scalar"].item() == 9.
+    assert torch.equal(trace["original_copy_pair_6"], x)
+    assert features.shape == (1, 33, 256, 256)
+    assert torch.isfinite(features).all()
+    with pytest.raises(ValueError):
+        assemble_legacy33_features(x, x, coefficient, time_map, maximum, fixed_gain=0.)

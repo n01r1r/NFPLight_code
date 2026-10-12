@@ -90,3 +90,35 @@ def test_checkpoint_prefix_normalization():
         assert "duplicate" in str(error)
     else:
         raise AssertionError("ambiguous checkpoint prefixes were accepted")
+
+
+def test_gain9_exports_and_suite_checkpoints_keep_unit_normal_and_raw_specular(tmp_path):
+    class TinyEstimator(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight=torch.nn.Parameter(torch.ones(1))
+        def forward(self,inputs):
+            value=inputs.new_full((inputs.shape[0],10,256,256),0.3)
+            value[:,:3]=2
+            return value
+    payloads=[
+        {"feature_version":"raw_calibrated_gain9_v3","normal_decoder":"unit XYZ"},
+        {"package":"full_dataset_suite","identity":{"scientific_settings":{"rendering":{"feature_version":"raw_calibrated_gain9_v3"}}}},
+        {"feature_version":"raw_calibrated_gain9_v3","normal_decoder":"unit normalization before loss/inference","contract":{"f0_input_and_both_render_branches":0.04}},
+    ]
+    for i,payload in enumerate(payloads):
+        model=MatSynthCaptureModel.__new__(MatSynthCaptureModel)
+        model.args=SimpleNamespace(image_size=256,input_mode="linear_rgb")
+        model.device=torch.device("cpu")
+        model.compute_dtype=torch.float32
+        model.capture_precision=True
+        model.net_g=TinyEstimator()
+        path=tmp_path / f"export_{i}.pth"
+        torch.save(dict(payload,net_g=model.net_g.state_dict()),path)
+        model.load_network(model.net_g,path)
+        assert model.feature_version=="raw_calibrated_gain9_v3" and model.unit_normal
+        model.build_features=lambda inputs,**kwargs:(inputs.new_zeros((1,21,256,256)),None,None)
+        model.feed_data({"inputs":torch.full((1,6,256,256),0.1)})
+        model.test()
+        torch.testing.assert_close(model.pred_svbrdf[:,:3].norm(dim=1),torch.ones((1,256,256)))
+        assert torch.equal(model.pred_svbrdf[:,7:10],torch.full((1,3,256,256),0.3))

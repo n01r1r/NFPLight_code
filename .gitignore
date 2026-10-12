@@ -45,3 +45,10 @@ __pycache__/
 /data/260923_141241_844/
 /data/260923_161825_503/
 /data/260930_152732_008/
+
+# Local browser profiles, audit scratch, and generated report copies.
+/_workspace/
+/tmp/
+/output/
+/graphify-out/
+/capture_processing/graphify-out/

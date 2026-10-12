@@ -330,6 +330,10 @@ def _warp_stages(image: np.ndarray, homography: np.ndarray) -> dict[str, Any]:
         "valid420": valid_crop,
         "output256": output,
         "geometry": {
+            "policy": "sample_crop_only_v1",
+            "inset": 0.0,
+            "sample_side_cm": 5.0,
+            "sample_side_basis": "user-confirmed sample ROI after paper exclusion",
             "warp_size": 512,
             "crop_margin": 46,
             "crop_shape": [420, 420],

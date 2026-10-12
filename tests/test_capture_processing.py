@@ -153,11 +153,17 @@ class CaptureProcessingTests(unittest.TestCase):
         for dtype in (np.float32,):
             with patch("cv2.aruco.ArucoDetector") as detector, patch("capture_processing.geometry.np.clip", wraps=np.clip) as clipper:
                 detector.return_value.detectMarkers.return_value = (corners, ids, [])
-                matrix, record = detect_marker_geometry(np.ones((128, 128, 3), dtype=dtype))
+                matrix, record = detect_marker_geometry(np.ones((128, 1800, 3), dtype=dtype))
             self.assertEqual(matrix.dtype, np.dtype(dtype))
             self.assertEqual(clipper.call_args_list[0].args[0].dtype, np.dtype(np.float32))
             self.assertEqual(record["marker_ids"], [0, 1, 2, 3])
             self.assertEqual(set(record["marker_corners_raw"]), {"0", "1", "2", "3"})
+            self.assertEqual(record["detector_scale"], 1.0)
+            self.assertEqual(detector.return_value.detectMarkers.call_args.args[0].shape, (128, 1800))
+            self.assertEqual(record["detector_corner_refinement"], "CORNER_REFINE_SUBPIX")
+            import cv2
+            self.assertEqual(detector.call_args.args[1].cornerRefinementMethod,
+                             cv2.aruco.CORNER_REFINE_SUBPIX)
 
     def test_model_execution_rejects_double_precision(self):
         from types import SimpleNamespace
