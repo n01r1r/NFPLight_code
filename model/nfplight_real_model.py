@@ -7,7 +7,7 @@ The approved inference path uses an identity input copy and no denoiser.
 
 from copy import deepcopy
 from torch.nn.parallel import DataParallel, DistributedDataParallel
-from tqdm import tqdm
+from PIL import Image
 import torch
 import numpy as np
 import os.path as osp
@@ -18,6 +18,8 @@ from .author_real_capture_adapter import AuthorTwoBranchRealNet as TwoBranchReal
 class NFPLightModel():
 
     def __init__(self, args):
+        if args.image_size != 256:
+            raise ValueError("real33 inference requires native 256x256 input")
         self.args = args
         self.device = torch.device(getattr(args, 'device', 'cuda'))
         self.renderer = svBRDF()
@@ -149,9 +151,9 @@ class NFPLightModel():
         inputs = data['inputs']
         if inputs.dtype != torch.float32:
             raise TypeError("real model inputs must remain FP32")
-        if (inputs.ndim != 4 or inputs.shape[1] != 6
+        if (inputs.ndim != 4 or inputs.shape[0] != 1 or inputs.shape[1] != 6
                 or inputs.shape[-2:] != (self.args.image_size, self.args.image_size)):
-            raise ValueError("real model inputs require [B,6,image_size,image_size]")
+            raise ValueError("real model inputs require [1,6,image_size,image_size]")
         if not torch.isfinite(inputs).all() or inputs.amin() < 0 or inputs.amax() > 1:
             raise ValueError("real model inputs must be finite linear RGB in [0,1]")
         self.inputs = inputs.to(self.device)
@@ -225,13 +227,13 @@ class NFPLightModel():
             d = d ** (1/2.2)
             s = s ** (1/2.2)
         svbrdf_vis = torch.cat([near_input,far_input,n,d,r,s],-1)
-        import torchvision
         if '.png' not in path:
             path = path + '.png'
-        torchvision.utils.save_image(svbrdf_vis,path)
+        image = (svbrdf_vis[0].detach().float().cpu().clamp(0, 1)
+                 .permute(1, 2, 0).numpy() * 255 + 0.5).astype(np.uint8)
+        Image.fromarray(image).save(path)
 
     def validation(self, dataloader):
-        pbar = tqdm(total=len(dataloader), unit='image')
         self. metric_results = 0
         for idx, val_data in enumerate(dataloader):
             self.feed_data(val_data)
@@ -241,10 +243,6 @@ class NFPLightModel():
             self.save_svbrdf(self.pred_svbrdf,path,gamma=True)
 
             torch.cuda.empty_cache()
-            pbar.update(1)
-            pbar.set_description(f'Testing')
-
-        pbar.close()
 
 
     def save_visuals(self):

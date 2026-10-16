@@ -39,3 +39,5 @@ python -m pytest -q tests/test_real_spatial_attenuation.py tests/test_author_rea
 
 CPU 검증은 합성 Lambertian 거리 잔차 소거와 새 함수 호출, FP32, 33채널 구조 및 기존 adapter를 검사한다.
 원본 checkpoint 추론이나 실제 DNG 정확도 개선은 검증하지 않았다.
+
+Input contract: one FP32 `[1,6,256,256]` pair; other sizes or batches are rejected. PNG export uses the existing Pillow dependency.

@@ -100,3 +100,23 @@ def test_active_test_calls_updated_relation_without_denoiser(monkeypatch):
     # The first 30 appearance/log-appearance channels retain the old layout.
     expected_rgb = torch.cat([model.inputs, model.inputs, model.inputs[:, 3:]], 1)
     torch.testing.assert_close(model.net_g.features[:, :15], expected_rgb * 2 - 1)
+
+
+def test_rejects_non_native_size_and_multi_sample_gain():
+    with pytest.raises(ValueError, match='256x256'):
+        real.NFPLightModel(SimpleNamespace(image_size=16))
+    model = geometry_model()
+    with pytest.raises(ValueError, match='inputs require'):
+        model.feed_data({'inputs': torch.full((2, 6, 256, 256), .2),
+                         'name': ['a', 'b']})
+
+
+def test_validation_saves_png_with_declared_dependencies(tmp_path):
+    from PIL import Image
+    model = geometry_model()
+    model.args.save_root = str(tmp_path)
+    model.test = lambda: setattr(model, 'pred_svbrdf', torch.zeros(1, 10, 256, 256))
+    model.validation([{'inputs': torch.full((1, 6, 256, 256), .2), 'name': ['sample']}])
+    with Image.open(tmp_path / 'sample.png') as saved:
+        assert saved.size == (256 * 6, 256)
+        assert saved.mode == 'RGB'
