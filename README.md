@@ -1,12 +1,16 @@
 # NFPLight
 
-2026-10-19: [7M 수정 전·후 / C weight 전달과 remote 대비 pipeline 점검](docs/WEIGHT_HANDOFF_20261019.md). 전달 대상은 설정을 포함한 `best_render.pt`이며 weight는 Git에 포함하지 않는다.
+2026-10-19 C 추가 학습 승인: last render10k의 Adam/scheduler/RNG를 그대로 이어 운영 수렴 조건까지 [별도 연장 실행](artifacts/C_convergence_followup_20261019/queue.json). [현재 상태](docs/CURRENT_TRAINING_STATE.md) · [계약](artifacts/C_convergence_followup_20261019/EXPERIMENT_CONTRACT_KO.md). 원본 C best는 보존하며 매 validation에서 render와 N/D/R/S 변화를 확인한다.
 
-2026-10-19: A–C 유지·C 완료 후 [render-only 초기LR1e-5/10k 통제 후속](experiments/render_only_followup/README.md)을 연결했다. [실제 queue](artifacts/render_only_followup_20261019/queue.json) · [A–C/clean baseline 추가 실측 비교](artifacts/relmap_three_way_real_20261019/index.html). Render-only 성능은 완료 결과로 판단하며 현재 우위를 주장하지 않는다.
+2026-10-19 최신 후속 선택: **A/B 폐기, C만 유지**. Clean map135k 대비 C(λ10·초기LR1e-5·render10k)를 유지한다. [현재 상태](docs/CURRENT_TRAINING_STATE.md) · [선정 기록](artifacts/render_weight_followup_20261019/selection_decision.json) · [실측 비교](artifacts/relmap_three_way_real_20261019/index.html). A/B 파일은 이력으로 보존한다.
+
+전달할 7M 모델은 **01 relmap 수정 전 → 02 relmap 수정 후 → 03 C 옵션** 순서로 정리했다. [파일명·학습 설정·추론 방법](docs/WEIGHT_HANDOFF_20261019.md) · [전체 설정 JSON](docs/weights/training_settings_20261019.json). 로컬 전달 폴더는 `artifacts/weight_handoff_20261019/`이며 원본과 동일한 `.pt` 세 개를 포함한다. Weight는 Git에서 제외한다.
+
+Render-only D는 Windows 경로 오류로 학습 시작 전에 중단됐고 재실행하지 않았다. [실제 queue](artifacts/render_only_followup_20261019/queue.json) · [C/clean baseline 실측 비교](artifacts/relmap_three_way_real_20261019/index.html). 과거 A–C/D 계획은 [현재 상태의 이력](docs/CURRENT_TRAINING_STATE.md)에 보존한다.
 
 2026-10-19: [기존 relmap 64M / 기존 relmap 7M / 변경 relmap 7M 실측 5묶음 비교](artifacts/relmap_three_way_real_20261019/index.html). Relmap·재질 맵·near/far 재렌더·ΔE00과 학습 조건 차이를 함께 제공한다. [분석·한계](artifacts/relmap_three_way_real_20261019/ANALYSIS_KO.md).
 
-2026-10-16: 수정 relmap 기준 [전체 데이터 재학습 준비·검증 완료](artifacts/spatial_retraining_20261016/README.md). baseline7m_p01 본 학습은 미시작이며 15M은 보류한다. [준비·실행 안내](experiments/full_dataset_suite/README.md).
+2026-10-16 준비 검증은 [당시 보고](artifacts/spatial_retraining_20261016/README.md)에 보존했다. 이후 7M 재학습과 C 선별 학습은 완료됐으며 15M은 보류한다. [준비·실행 안내](experiments/full_dataset_suite/README.md).
 
 2026-10-16: 거리비율 relation 보정을 train·eval·inference에 공통 적용한다. `relation_version=spatial_inverse_square_v1`; 학습 gain9·실측 patch20 및 과거 결과는 유지한다. [계산·호환성 규약](docs/REAL_SPATIAL_ATTENUATION.md)을 따른다.
 
