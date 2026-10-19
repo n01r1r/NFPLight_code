@@ -17,7 +17,30 @@ def numeric(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
-def plateau(history, stage):
+def plateau(history, stage, status=None, policy=None):
+    convergence = (status or {}).get('convergence', {})
+    if stage in convergence:
+        record = convergence[stage]
+        policy = policy or {}
+        target = policy.get('floor_observations')
+        count = record.get('floor_bad_observations')
+        if not numeric(target) or target <= 0 or not numeric(count) or count < 0:
+            return {'source': 'trainer', 'status': 'missing_trainer_policy_or_state',
+                    'streak': None, 'target': None, 'automatic_stop': False}
+        monitor = policy.get(stage + '_monitor')
+        metric = {'heldout.ndrs_sum': 'NDRS sum', 'heldout.ndr_mean': 'N/D/R mean',
+                  'heldout.render_l1': 'Render L1'}.get(monitor, monitor or '지표 미기록')
+        reason = (status or {}).get('stop_reasons', {}).get(stage)
+        if reason == 'floor_no_meaningful_improvement' or count >= target:
+            state = 'plateau'
+        elif record.get('meaningful_best') is None:
+            state = 'not_started'
+        else:
+            state = 'floor_wait' if record.get('floor_reached') else 'observing'
+        return {'source': 'trainer', 'status': state, 'metric': monitor,
+                'metric_label': metric, 'streak': count, 'target': target,
+                'meaningful_best': record.get('meaningful_best'),
+                'floor_reached': record.get('floor_reached'), 'automatic_stop': False}
     rows = [row for row in history if row.get('stage') == stage]
     values = []
     for row in rows:
@@ -56,8 +79,10 @@ def display_points(points, column, limit=6000):
 
 
 class LogReader:
-    def __init__(self, directory):
+    def __init__(self, directory, *, history_limit=None):
         self.directory = Path(directory)
+        self.history_limit = history_limit
+        self.inherited_reader = None
         self.offset = 0
         self.identity = None
         self.anchor = b''
@@ -103,6 +128,9 @@ class LogReader:
                     if not numeric(step):
                         raise ValueError('missing finite total_step')
                     stage = row.get('stage', 'unknown')
+                    if self.history_limit and (stage != self.history_limit[0] or step > self.history_limit[1]):
+                        self.offset = stream.tell()
+                        continue
                     for key in ('loss', 'map_loss', 'ndrs_sum', 'ndr_mean', 'normal_loss', 'diffuse_loss', 'roughness_loss', 'specular_loss', 'render_loss', 'lr'):
                         value = row.get(key)
                         if value is None:
@@ -127,6 +155,36 @@ class LogReader:
             self.anchor = stream.read(min(128,self.offset))
 
     def snapshot(self):
+        snapshot = self.current_snapshot()
+        manifest = self.directory / 'display_history.json'
+        if self.history_limit or not manifest.exists():
+            return snapshot
+        inherited = json.loads(manifest.read_text(encoding='utf-8'))
+        source = (self.directory / inherited['source_run']).resolve()
+        through = inherited['through_total_step']
+        if source == self.directory.resolve() or inherited['stage'] != 'map' or not isinstance(through, int) or isinstance(through, bool) or through <= 0:
+            raise ValueError('invalid inherited map display history')
+        if not all((source / name).is_file() for name in ('train.jsonl', 'validation.json')):
+            raise ValueError('inherited map display history is missing')
+        if self.inherited_reader is None or self.inherited_reader.directory != source or self.inherited_reader.history_limit != ('map', through):
+            self.inherited_reader = LogReader(source, history_limit=('map', through))
+        parent = self.inherited_reader.snapshot()
+        if parent['invalid_train_rows'] or parent['validation_error']:
+            raise ValueError('invalid inherited map display history records')
+        for key in ('train', 'train_smooth', 'val'):
+            if snapshot[key].keys() & parent[key].keys():
+                raise ValueError('inherited history overlaps current run stages')
+            snapshot[key] = {**parent[key], **snapshot[key]}
+        snapshot['inherited_history'] = {'source_run': str(source), 'stage': 'map',
+                                         'through_total_step': through, 'rows_read': parent['rows_read']}
+        snapshot['history_note'] = (f'공통 map 이력: 원본의 실제 map update 1–{through:,} 및 해당 Validation을 함께 표시합니다. '
+                                    f'선택된 map {through:,} 가중치에서 각 render 실험으로 분기했습니다. '
+                                    '이후 원본 run 이력은 제외하며, 현재 상태·최근 지표·학습 행 수는 이 실험만의 기록입니다. '
+                                    'map/render 이동평균은 단계별로 분리합니다.')
+        snapshot['note'] += ' ' + snapshot['history_note']
+        return snapshot
+
+    def current_snapshot(self):
         self.update()
         validation = self.directory / 'validation.json'
         error = None
@@ -141,6 +199,9 @@ class LogReader:
             document = {}
             error = str(exc)
         history = document.get('history', [])
+        if self.history_limit:
+            history = [row for row in history if row.get('stage') == self.history_limit[0]
+                       and numeric(row.get('total_step')) and row['total_step'] <= self.history_limit[1]]
         valseries = {}
         for row in history:
             stage = row.get('stage', 'unknown')
@@ -163,6 +224,10 @@ class LogReader:
             status = json.loads((self.directory/'status.json').read_text(encoding='utf-8'))
         except (OSError, ValueError):
             status = {}
+        try:
+            policy = json.loads((self.directory/'execution_config.json').read_text(encoding='utf-8')).get('policy', {})
+        except (OSError, ValueError):
+            policy = {}
         timestamps = {}
         for name, filename in [('train_log', 'train.jsonl'), ('validation_file', 'validation.json'), ('status_file', 'status.json')]:
             path = self.directory / filename
@@ -172,7 +237,7 @@ class LogReader:
                 'status': status, 'val_axis': 'total optimizer update' if all('total_step' in row for row in history) else 'stage-local optimizer update',
                 'rows_read': self.count, 'invalid_train_rows': self.errors,
                 'latest': self.latest, 'validation_error': error,
-                'plateau': {stage:plateau(history,stage) for stage in ('map','render')},
+                'plateau': {stage:plateau(history,stage,status,policy) for stage in ('map','render')},
                 'note': 'Train uses total_step; val uses recorded total_step or legacy stage-local step. Raw and 100-update mean are independently display-decimated from complete history; logs remain complete. Missing component metrics are not inferred.'}
 
 

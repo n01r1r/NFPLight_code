@@ -11,7 +11,7 @@ import psutil
 from experiments.bottleneck_fc.config import process_identity,process_identity_matches
 from experiments.regularization.config import atomic_write_json
 from experiments.robustness_suite.controller import gpu_ready,cuda_busy
-from experiments.full_dataset_suite.config import ROOT,DEFAULT_OUT,ARMS,prepare
+from experiments.full_dataset_suite.config import ROOT,ARMS,prepare
 from experiments.full_dataset_suite.storage import require_disk_reserve
 
 def read(path):return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -22,7 +22,7 @@ def authorized_jobs(plan):
     return plan["arms"]
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument("--root",type=Path,default=DEFAULT_OUT);args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument("--root",type=Path,required=True);args=parser.parse_args()
     root=args.root.resolve();plan=read(root/"queue_plan.json");authorized_jobs(plan)
     lock=root/"controller_lock.json"
     if lock.exists():raise RuntimeError("controller lock exists; inspect rather than auto-restart")

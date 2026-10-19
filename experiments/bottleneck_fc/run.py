@@ -45,6 +45,7 @@ from experiments.bottleneck_fc.pipeline import (
 
 import numpy as np
 import torch
+from model.relation_geometry import RELATION_VERSION
 
 from model.nfplight_model import (
     CURRENT_RAW_FEATURE_VERSION,
@@ -462,6 +463,8 @@ def _run_arm(
     history = []
     if resume and checkpoint_path.exists():
         state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        if state.get("relation_version") != RELATION_VERSION:
+            raise ValueError("checkpoint relation_version differs; start a new training lineage")
         if (
             state.get("seed") != seed
             or state.get("arm_id") != arm_id
@@ -574,7 +577,7 @@ def _run_arm(
             )
             if checkpoint_due:
                 checkpoint = {
-                    "checkpoint_version": 1,
+                    "relation_version": RELATION_VERSION, "checkpoint_version": 1,
                     "seed": seed,
                     "arm_id": arm_id,
                     "step": total_step,

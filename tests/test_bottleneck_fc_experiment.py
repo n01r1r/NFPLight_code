@@ -440,7 +440,7 @@ def test_resume_restores_adam_order_and_discards_uncommitted_rows(tmp_path, monk
         0, "map", TinyModel(), initial_populations, torch.zeros(1, 3), settings,
     )
     state = {
-        "checkpoint_version": 1,
+        "relation_version": "spatial_inverse_square_v1", "checkpoint_version": 1,
         "seed": 7,
         "arm_id": "baseline",
         "step": 1,

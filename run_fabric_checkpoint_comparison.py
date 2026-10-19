@@ -20,6 +20,7 @@ from capture_processing.report import (_FORMULAS, _PREDICTION_COMPONENTS,
                                        _stats)
 from model.nfplight_matsynth_capture_model import MatSynthCaptureModel
 from model.author_real_capture_adapter import GAIN_PATCH
+from model.relation_geometry import spatial_far, RELATION_VERSION
 from run_fabric_capture import CAPTURE_GROUPS
 
 PARENT = Path('checkpoints/fabric_amp_l1map400k_render100k_20260915')
@@ -57,6 +58,8 @@ def hwc(t):
 
 
 def load_models(gain_mode):
+    if gain_mode != 'author_patch20':
+        raise ValueError('measured inference requires author_patch20; training gain is separate')
     models, records = {}, {}
     for key, label, path, cumulative, expected in WEIGHTS:
         payload = torch.load(path, map_location='cpu', weights_only=False)
@@ -84,6 +87,8 @@ def load_models(gain_mode):
             'logged_state': dict(zip(('stage', 'step', 'total_step'),
                                      expected)),
             'feature_version': m.feature_version,
+            'relation_version': m.relation_version,
+            'checkpoint_relation_version': m.checkpoint_relation_version,
             'capture_gain_mode': gain_mode,
             'normal_head': m.normal_head,
             'training_amp': payload['contract']['settings']['amp'],
@@ -100,7 +105,7 @@ def trace(m, x, f, p):
     else:
         gain = n.new_tensor((m.far_distance / m.near_distance)**2)
     gained = far * gain
-    timed = (gained * m.time_co_map).clamp(0, 1)
+    timed = spatial_far(gained, m.time_co_map, m.spatial_attenuation_factor).clamp(0, 1)
     signed = timed - n
     numerator = signed.abs().mean(1, keepdim=True)
     denominator = m.coefficient.clamp(min=1e-5)
@@ -128,6 +133,7 @@ def trace(m, x, f, p):
             'log_near': decoded[:, 9:12],
             'valid_mask': decoded[:, 20:21],
             'time_co_map': m.time_co_map,
+            'spatial_attenuation_factor': m.spatial_attenuation_factor,
             'features': f,
             'prediction': p
         }.items()
@@ -346,6 +352,7 @@ def run(args):
             },
             model_contract={
                 'feature_version': 'raw_calibrated_v2',
+                'relation_version': RELATION_VERSION,
                 'capture_gain_mode': args.gain_mode,
                 'normal_head': 'xyz',
                 'estimator_input_channels': 21
@@ -379,7 +386,7 @@ def run(args):
                 m.feed_data({'inputs': x})
                 m.test()
                 p = m.pred_svbrdf.clone()
-                f, _, _ = m.build_features(x, gain_mode=args.gain_mode)
+                f, _, _ = m.build_capture_features(x)
                 m.test()
                 assert torch.equal(p, m.pred_svbrdf), 'repeat mismatch'
             if reference_features is None:
@@ -517,7 +524,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--review-from', type=Path, help='Reuse review only after exact registration equality')
-    parser.add_argument('--gain-mode', choices=('checkpoint', 'author_patch20'), default='author_patch20')
+    parser.add_argument('--gain-mode', choices=('author_patch20',), default='author_patch20')
     parser.add_argument(
         '--archive',
         type=Path,

@@ -65,6 +65,7 @@ def execution_identity():
         if historical.get(current["path"]) != current:
             raise ValueError(f"control input identity changed: {path}")
     sources = [ROOT / path for path in reference["experiment_settings"]["provenance"]["source_files"]]
+    sources += [ROOT / "model/relation_geometry.py"]
     sources += sorted((ROOT / "experiments/plateau_followup").glob("*.py"))
     paths = set(sources) | {Path(path) for path in input_paths}
     paths |= {reference_path, CONTROL / "experiment_config.json", CONTROL / "seed19_d4_dropout/complete.json",

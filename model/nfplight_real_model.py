@@ -5,6 +5,7 @@ The default init_rendering/test calls select their spatially corrected variants.
 The approved inference path uses an identity input copy and no denoiser.
 """
 
+from .relation_geometry import RELATION_VERSION, spatial_attenuation_factor, planar_squared_distances
 from copy import deepcopy
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 from PIL import Image
@@ -16,6 +17,7 @@ from utils import svBRDF
 from .author_real_capture_adapter import AuthorTwoBranchRealNet as TwoBranchRealNet
 
 class NFPLightModel():
+    relation_version = RELATION_VERSION
 
     def __init__(self, args):
         if args.image_size != 256:
@@ -77,33 +79,7 @@ class NFPLightModel():
         torch_time_coefficient = torch.as_tensor(time_coeff, dtype=torch.float32, device=self.device)
         torch_time_coefficient = torch_time_coefficient.unsqueeze(0).unsqueeze(0)
         return torch_coefficient, torch_time_coefficient
-    @staticmethod
-    def spatialAttenuationFactor(distance_squared_near, distance_squared_far):
-        """FP32 center-normalized r_far^2/r_near^2 from the s34/s15 report.
-
-        Distances must be positive [B,1,H,W] tensors in common world units.
-        The lower central pixel matches the report's [127,127] at size 256.
-        The center brightness gain is already in aligned_far and is NOT
-        multiplied again here. This factor corrects distance, not normals.
-        """
-        if (distance_squared_near.ndim != 4
-                or distance_squared_near.shape[1] != 1
-                or distance_squared_near.shape != distance_squared_far.shape
-                or min(distance_squared_near.shape) <= 0):
-            raise ValueError("squared distances require matching [B,1,H,W] shapes")
-        if distance_squared_near.device != distance_squared_far.device:
-            raise ValueError("squared distances must share a device")
-        for distance in (distance_squared_near, distance_squared_far):
-            if distance.dtype != torch.float32:
-                raise TypeError("spatial attenuation requires FP32 squared distances")
-            if not torch.isfinite(distance).all() or torch.any(distance <= 0):
-                raise ValueError("squared distances must be finite and positive")
-        ratio = distance_squared_far / distance_squared_near
-        cy, cx = [(size - 1) // 2 for size in ratio.shape[-2:]]
-        factor = ratio / ratio[:, :, cy:cy+1, cx:cx+1]
-        if not torch.isfinite(factor).all() or torch.any(factor <= 0):
-            raise ValueError("spatial attenuation factor must be finite and positive")
-        return factor
+    spatialAttenuationFactor = staticmethod(spatial_attenuation_factor)
 
     def coefficientGenerationSpatialAttenuation(self):
         """Keep the original angular denominator; add planar inverse-square geometry.
@@ -116,11 +92,8 @@ class NFPLightModel():
         size = self.args.image_size
         if size <= 0 or not (0 < self.near_distance < self.far_distance):
             raise ValueError("require positive size and 0 < near_distance < far_distance")
-        axis = (torch.arange(size, dtype=torch.float32, device=self.device)
-                - (size - 1) / 2) / (size / 2.0)
-        rho_squared = (axis[:, None].square() + axis[None, :].square())[None, None]
-        self.distance_squared_near = rho_squared + self.near_distance ** 2
-        self.distance_squared_far = rho_squared + self.far_distance ** 2
+        self.distance_squared_near, self.distance_squared_far = planar_squared_distances(
+            size, self.near_distance, self.far_distance, self.device)
         self.spatial_attenuation_factor = self.spatialAttenuationFactor(
             self.distance_squared_near, self.distance_squared_far)
         return coefficient, time_coefficient

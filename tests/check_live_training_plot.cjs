@@ -32,3 +32,13 @@ for(const id of ['status-table','train-table','val-table'])assert.ok(html.includ
 assert.ok(!html.includes('Normal angle median'));
 assert.ok(!html.includes('Normal angle P95'));
 assert.ok(html.includes('Normal angle — 재질별 평균'));
+
+sandbox.trainerPlateau={source:'trainer',status:'floor_wait',metric_label:'NDRS sum',streak:7,target:20,meaningful_best:.120571};
+const trainerText=vm.runInContext("plateauText('map',trainerPlateau)",sandbox);
+assert.match(trainerText,/NDRS sum/);assert.match(trainerText,/종료 대기 7\/20/);
+assert.ok(!trainerText.includes('/10'));assert.ok(!trainerText.includes('종료 조건 충족'));
+assert.equal(vm.runInContext("plateauLabel({...trainerPlateau,status:'not_started'})",sandbox),'미시작');
+assert.equal(vm.runInContext("plateauLabel({...trainerPlateau,status:'plateau'})",sandbox),'종료 조건 충족');
+assert.equal(vm.runInContext("plateauCount({...trainerPlateau,target:8})",sandbox),'7/8');
+assert.match(vm.runInContext("plateauText('map',{status:'plateau',streak:24})",sandbox),/기존 진단 기준/);
+console.log('trainer metric, recorded floor counter/target, phase state and legacy fallback: PASS');

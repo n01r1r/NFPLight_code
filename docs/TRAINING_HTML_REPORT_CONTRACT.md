@@ -51,7 +51,9 @@ Normal angle 표시에는 **재질별 동일 가중치 평균 각도 오차(°) 
 
 시각은 Asia/Seoul로 날짜·시간을 표시한다. 개별 update timestamp가 없으므로 파일 mtime은 반드시 ‘파일 수정 시각’이라고 표시한다. Browser 갱신 시각을 학습 발생 시각으로 쓰지 않는다. 누락 값은 —, 실제 0은 0. Stage 전환 후 과거 Val은 그 stage/step을 표시하며 현재 train과 같은 시점인 것처럼 보이지 않게 한다.
 
-Plateau는 stage별 10회 연속 validation interval에서 상대 개선 <0.5%인 경우 표시한다. map은 NDR mean, render는 render L1을 사용한다. 화면 지표일 뿐 자동 종료하지 않는다. 자세한 과학 계약은 [학습 문서](FABRIC_LEATHER_TRAINING.md)를 따른다.
+2026-10-18: `status.json`에 trainer의 `convergence`가 있는 run은 해당 기록을 그대로 표시한다. 지표와 종료 대기 목표 횟수는 `execution_config.json`의 `policy.map_monitor`/`render_monitor` 및 `floor_observations`에서 읽는다. 현재 전체 학습은 map=NDRS 합, render=Render L1이며 종료 대기를 `floor_bad_observations/20`으로 표시한다. 미시작·최저 LR 도달 전·최저 LR에서 종료 대기·종료 조건 충족을 구분하며 화면에서 수렴을 재계산하지 않는다. 의미 있는 best 갱신과 대기 초기화도 trainer 기록을 따른다. 정책 누락 시 확인 필요로 표시하며 목표 횟수를 추정하지 않는다. Viewer는 학습 종료나 단계 전환을 실행하지 않는다.
+
+Trainer convergence 기록이 없는 과거 run만 기존 진단을 유지한다: stage별 10회 연속 validation interval에서 직전 평가 대비 상대 개선 <0.5%일 때 plateau를 표시하며 map=NDR mean, render=render L1이다. 이 경우 화면에 ‘기존 진단 기준 · 자동 종료 없음’을 명시한다. 자세한 과학 계약은 [학습 문서](FABRIC_LEATHER_TRAINING.md)를 따른다.
 
 ## 입력·출력과 검증
 
@@ -77,7 +79,7 @@ Backlinks: [AGENTS.md](../AGENTS.md), [README](../README.md), [학습 계약](FA
 
 ## 2026-10-11 NDRS합 전체학습 표시 확장
 
-새전체run에서map_aggregation=ndrs_sum이면map_loss를N/D/Rmean으로표시하지않는다. NDRS sum(#9467bd)과Specular(#8c564b)를추가하고NDRmean은별도diagnostic이다. 기존run의지표/색/템플릿은유지한다. Plot의plateau는기존NDR진단표시이고새전체학습종료는실제run status의scheduler/convergence기록을따른다.
+새전체run에서map_aggregation=ndrs_sum이면map_loss를N/D/Rmean으로표시하지않는다. NDRS sum(#9467bd)과Specular(#8c564b)를추가하고NDRmean은별도diagnostic이다. 기존run의지표/색/템플릿은유지한다. 2026-10-18부터 trainer convergence가 있는 run의 plateau 표시도 위 규약에 따라 실제 NDRS 종료 판정과 대기 횟수를 따른다.
 
 
 ## 2026-10-12 정적 학습 + 공식 test 보고
@@ -97,3 +99,7 @@ Backlinks: [AGENTS.md](../AGENTS.md), [README](../README.md), [학습 계약](FA
 GT/예측 render ΔE00은 공식test12폴더×16crop×30고정조명 전체에서 계산한다. Near/far colocated4/12의 GT/예측 재렌더 ΔE00도 별도 집계한다. 기존 capture_processing/difference_visualization.py를 재사용하며 FP32 unclipped linear RGB→CPU FP64 XYZ D65/Lab2°/CIEDE2000(kL=kC=kH=1), gamma/노출/PNG재읽기 없이 계산한다. 유효 픽셀→조명→crop→폴더macro를 사용하고 기존 L1과 대체하지 않는다. 대표crop0 heatmap은 sample·지표별두checkpoint 공통range, P98고립꼬리 표시만clip, colorbar/단위/범위/clipping비율을 포함한다. Normal angle·diffuse/F0 physicalRGB RMS·roughness signed차이도 같은규칙이다. 다른sample의색강도를절대비교하지않는다. 새 script는 artifacts/full_dataset_static_test_20261012/extend_features.py이며 기존동결weights만읽고새학습/새선택은하지않는다.
 
 유효 영역 밖 픽셀은 relation 검증에서 실제 feature의 mask 연산을 그대로 적용하고 ΔE00·map error 집계에서 제외한다. crop별 valid fraction은 JSON에 남기고 유효영역 mask도 gallery에 표시한다. 색차 계산은 같은 CPU FP64 함수를2조명씩4worker 이내로 실행하며 기존serial 결과와 일치성을 검사했다. 폴더 단위progress는 재개 전후 첫crop의색차 일치를 확인한다.
+
+## 2026-10-19 render 후속의 공통 map 이력
+
+사용자 요청에 따라 A/B/C의 라이브·오프라인 학습 그래프는 각 run의 `display_history.json`으로 원본 수정 relmap run의 실제 map Train/Validation을 선택 weight135000까지 읽어 함께 표시한다. 원본 map135001–155000 및 과거 render 이력은 제외한다. 원본 기록의 total_step을 그대로 사용하며 stage별 100-update 평균을 유지한다. 현재 상태·최근 Train/Validation·rows_read는 현재 조건의 기록만 사용하고 inherited_history로 원본 경로·표시 범위·행 수를 별도 공개한다. 대기 조건도 map 이력은 보이지만 render를 실행한 것으로 표시하지 않는다. 학습 로그/config/checkpoint는 수정하지 않는다. 후속 정성 보고서도 기존 offline exporter의 동일 snapshot을 사용한다.

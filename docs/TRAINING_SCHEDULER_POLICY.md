@@ -55,3 +55,12 @@ Doctor는read-only 검사이며trainer 실행을기술적으로차단하지않�
 ## 2026-10-11 전체 데이터3조건 자동진행
 
 사용자는Extra-crop/EMA제외와1–3자동진행·적절한상한을요청했다. [새계약](../artifacts/full_dataset_three_20261011/EXPERIMENT_CONTRACT_KO.md)에따라새scoped전체runner에서ReduceLROnPlateau를구현·검증했다. Map/render monitor는NDRS합/novel12render,평가1000update·floor20·상한400k/100k를운영선택으로적용한다. 미구현전역기본값과이새scoped구현을구분한다. 승인1–3외자동학습은하지않는다. 상한도달은pause,실패·memory/diskpause는queue중단·검토이며자동재시작하지않는다.
+
+
+## 2026-10-19 승인된 render weight/LR 순차 선별
+
+[별도 계약](../artifacts/render_weight_followup_20261019/EXPERIMENT_CONTRACT_KO.md)에 따라 같은135k map weight에서 A/B/C를 각10k update 순차 실행하고 조건별 보고서를 생성한다. ReduceLROnPlateau를 유지하며 초기 render LR만 선언된 비교 변수다. 10k는 고정 선별 예산 종료로 기록하고 수렴 완료라고 하지 않는다. 각 학습 뒤 보고서 검증 성공 후 다음 조건을 시작하며 실패·memory/disk pause는 queue를 중단하고 자동 재시작하지 않는다. 기존 run의 cap/pause 정책에 소급 적용하지 않는다.
+
+## 2026-10-19 승인된 C 이후 render-only 후속
+
+사용자가 같은 map135k·초기LR1e-5·10k의 render-only 추가 실행과 B/C 통제 비교를 승인했다. [후속 계약](../artifacts/render_only_followup_20261019/EXPERIMENT_CONTRACT_KO.md)의 별도 worker가 기존 A–C 및 실측 watcher 정상 완료 후 smoke·D 학습·공동 판정·합성/실측 보고를 실행한다. B/C의 ReduceLROnPlateau 정책과 fresh Adam/RNG·평가 조건을 유지한다. 초기LR 지정은 고정LR로 해석하지 않는다. Map은 train diagnostics/evaluation에만 계산하고 backward에서 제거하며 기존 NDRS합 선정 보호는 유지한다. 실패·pause는 자동 재개하지 않는다. 기존 A–C queue/source/config는 불변이며 새 seed·10k 연장·기본 inference weight 교체·기존 산출물 삭제는 이번 범위에 없다.

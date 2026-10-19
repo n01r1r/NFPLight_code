@@ -219,7 +219,7 @@ def test_run_seed_warm_starts_map_then_uses_fresh_render_adam_cpu(tmp_path, monk
         "settings": settings,
     }
     probe_run._atomic_torch_save(seed_dir / "map_stage_end.pt", {
-        "checkpoint_version": 1, "seed": 7, "arm_id": "baseline", "step": 1000,
+        "relation_version": "spatial_inverse_square_v1", "checkpoint_version": 1, "seed": 7, "arm_id": "baseline", "step": 1000,
         "net_g": parent_model.state_dict(), "optimizer": parent_optimizer.state_dict(),
         "history": history, "execution_identity": identity, "environment": environment,
     })

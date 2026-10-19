@@ -1,5 +1,17 @@
 # NFPLight
 
+2026-10-19: [7M 수정 전·후 / C weight 전달과 remote 대비 pipeline 점검](docs/WEIGHT_HANDOFF_20261019.md). 전달 대상은 설정을 포함한 `best_render.pt`이며 weight는 Git에 포함하지 않는다.
+
+2026-10-19: A–C 유지·C 완료 후 [render-only 초기LR1e-5/10k 통제 후속](experiments/render_only_followup/README.md)을 연결했다. [실제 queue](artifacts/render_only_followup_20261019/queue.json) · [A–C/clean baseline 추가 실측 비교](artifacts/relmap_three_way_real_20261019/index.html). Render-only 성능은 완료 결과로 판단하며 현재 우위를 주장하지 않는다.
+
+2026-10-19: [기존 relmap 64M / 기존 relmap 7M / 변경 relmap 7M 실측 5묶음 비교](artifacts/relmap_three_way_real_20261019/index.html). Relmap·재질 맵·near/far 재렌더·ΔE00과 학습 조건 차이를 함께 제공한다. [분석·한계](artifacts/relmap_three_way_real_20261019/ANALYSIS_KO.md).
+
+2026-10-16: 수정 relmap 기준 [전체 데이터 재학습 준비·검증 완료](artifacts/spatial_retraining_20261016/README.md). baseline7m_p01 본 학습은 미시작이며 15M은 보류한다. [준비·실행 안내](experiments/full_dataset_suite/README.md).
+
+2026-10-16: 거리비율 relation 보정을 train·eval·inference에 공통 적용한다. `relation_version=spatial_inverse_square_v1`; 학습 gain9·실측 patch20 및 과거 결과는 유지한다. [계산·호환성 규약](docs/REAL_SPATIAL_ATTENUATION.md)을 따른다.
+
+2026-10-13 현재 gain 규약: 학습·합성 validation/test는 고정 gain9, 실측 inference는 중앙20×20 RGB 평균 near/far 비율(`author_patch20`)이다. 학습 설정을 실측 gain에 적용하지 않는다. [규약](docs/CAPTURE_REQUIREMENTS.md#14-2026-10-13-사용자-확정-학습과-실측-추론-분리) · [지정 snapshot 재추론 보고](artifacts/full_dataset_baseline7m_best_real_20261012/snapshot_20261012_090422_patch20_20261013/index.html). 과거 고정 gain 실측 결과는 이력으로 보존한다.
+
 완료된 refinement runner·날짜별 report/PDF 생성기와 전용 테스트는 [복구용 원본 ZIP](docs/archive/completed_refinement_sources.zip)으로 정리했다. 아래 관련 Python 명령은 과거 기록이며 재현할 때만 ZIP의 원래 상대 경로로 복구한다. 현재 capture·학습 진입점은 유지한다.
 
 

@@ -1,5 +1,7 @@
 # 현재 Fabric DNG 리포트: 생성 규약과 데이터 흐름
 
+2026-10-16: 거리비율 relation 보정을 train·eval·inference에 공통 적용한다. `relation_version=spatial_inverse_square_v1`; 학습 gain9·실측 patch20 및 과거 결과는 유지한다. [계산·호환성 규약](REAL_SPATIAL_ATTENUATION.md)을 따른다.
+
 완료된 refinement runner·날짜별 report/PDF 생성기와 전용 테스트는 [복구용 원본 ZIP](archive/completed_refinement_sources.zip)으로 정리했다. 아래 관련 Python 명령은 과거 기록이며 재현할 때만 ZIP의 원래 상대 경로로 복구한다. 현재 capture·학습 진입점은 유지한다.
 
 
@@ -13,7 +15,20 @@
 근거: [ISO 표준 소개](https://www.iso.org/standard/78907.html), [국제 간결한 언어 연합의 원칙 설명](https://www.iplfederation.org/iso-standard/).
 ASD-STE100은 통제된 영어를 위한 규칙이므로 한국어 문서의 작성 기준으로 선택하지 않았다.
 
+## 1.4. 2026-10-13 사용자 확정: 학습과 실측 추론 분리
+
+이 규약은 아래 §1.2·§1.3 및 과거 실측 보고의 고정 gain9 지시를 대체한다. 과거 결과는 실행 이력으로 보존한다.
+
+- 학습 및 합성 validation/test: `raw_calibrated_gain9_v3`, near4/far12, 고정 `gain=(12/4)^2=9`. 기존 학습·가중치·공식 test 결과를 변경하지 않는다.
+- 실측 inference: 교정·정합·프레임 선택 후 선형 FP32 near/far 입력의 중앙 `[118:138,118:138]` RGB 전체 평균으로 `K_L=mean(N)/max(mean(F),1e-5)`를 계산한다. 평균의 차이가 아닌 비율이다. 학습 gain9를 강제하거나 어두운 중앙 패치를 9로 대체하지 않는다. 분모 floor 활성 여부를 기록하고 비유한값은 거부한다.
+- 구현: 합성 특징은 `NFPLightModel.build_features`; 실측 특징은 `build_capture_features`를 사용한다. checkpoint의 feature_version은 학습 provenance이며 실측 gain 모드를 결정하는 근거가 아니다. capture 전용 모델은 고정 gain 모드를 거부한다.
+- 새 실측 보고는 `training_gain=9`, `capture_gain_mode=author_patch20`, 중앙 near/far 평균·실제 gain·분모 floor·평균 잔차를 기록한다. far gain, 각도 보정, relation/log-relation, mask, log appearance 및 예측·재렌더를 모두 새 계산한다.
+- 현재 승인된 sample_crop_only_v1(inset0)로 정합·무늬를 새 검토한다. 지정 옛 snapshot의 inset0.035 입력과 달라 gain만의 효과를 분리한 비교는 아니다. 실측 기하 near4/far12·21채널·unit-normal decoder·F0=.04·lamp16·FP32·denoiser 금지·both·공통 정합·프레임 선택은 유지한다. gain 추정만 저자 실측 방식이며 denoiser를 포함한 원본 모델 전체 재현이라고 주장하지 않는다.
+- 사용자 지정 snapshot_20261012_090422의 best-map/best-render 두 동결 checkpoint를 그대로 읽어 5묶음을 새 추론한다. 새 결과는 [중앙 평균 gain 보고](../artifacts/full_dataset_baseline7m_best_real_20261012/snapshot_20261012_090422_patch20_20261013/index.html)에 저장한다. 과거 snapshot은 덮어쓰지 않는다. 이후 refresh와 완주 후 보고도 같은 실측 계약을 따른다. SHA-256은 실행하지 않는다.
+
 ## 1. 먼저 확인할 규약
+
+2026-10-19 추가 사용자 승인: [기존 relmap3조건 보고](../artifacts/relmap_three_way_real_20261019/index.html)에 A–C의 validation 선정 checkpoint 실측 결과를 옆에 추가한다. 기존 완료된 조건별 CPU FP32 실측 보고를 읽고 공통 정합·프레임·중앙RGB평균·색변환을 검사한다. 같은 map135k에서 승인된 D render-only의 별도 실측도 기존 capture builder로 생성한다. 학습 gain9와 실측 author_patch20을 구분하고 both·FP32·5묶음·denoiser 금지·GT 부재·원본 보존을 유지한다. 실측 관측 잔차는 checkpoint나 주 비교 선정에 사용하지 않는다. [후속 계약](../artifacts/render_only_followup_20261019/EXPERIMENT_CONTRACT_KO.md)에 따른 별도 승인 경로이며 아래 저자 원본 기본 추론 경로를 바꾸지 않는다.
 
 | 항목 | 현재 요구사항 |
 |---|---|
@@ -60,6 +75,18 @@ best_render는 400k+49k, 최종은 400k+100k다. 재시작 로그 total_step=149
 기존 continuous-AHD FP32 camera RGB를 읽기 전용 입력으로 사용해 현재 공통 정합·512→420→256crop·프레임 선택·both·WB/matrix를 새 계산한다. 정합 재계산이 이전 검토와 일치할 때만 시각 검토를 출처와 함께 재사용한다. 수치 입력 PNG 재읽기·gamma·8bit 양자화·denoiser·AMP·TF32·SHA-256은 금지한다. 기존 capture 표시/차이/픽셀조회 규약과 템플릿을 재사용하고 묶음별 report.html·전체 index.html·PNG/JSON 검증을 저장한다. 기존 frozen 입력과 checkpoint를 변경하지 않는다.
 
 실측 SVBRDF GT가 없어 모델간 map 차이나 관측 재렌더 오차를 재질 정확도 개선으로 해석하지 않는다. 학습·새 seed·외부자료·공식test·추가 모델 후보의 자동개시는 이번 승인에 포함하지 않는다.
+
+### 2026-10-13 사용자 승인 relation 평균 방식 비교
+
+기존 patch20 실측 report의 5묶음·best-map/best-render 동결 weight에서 RGB 평균과 가중 grayscale 추론을 비교한다. 기본 학습·실측 모델 계산을 변경하지 않고 별도 실험으로 추가한다. 실행기는 [run_relation_grayscale_comparison.py](../experiments/run_relation_grayscale_comparison.py), 계산은 [relation_grayscale_comparison.py](../experiments/relation_grayscale_comparison.py)다.
+
+`Δ=clip(Kθ×gain×Far,0,1)−Near`에서 저자 방식은 `mean_RGB(abs(Δ))`, 비교 방식은 `abs(0.299ΔR+0.587ΔG+0.114ΔB)`다. 가중치는 선형 RGB에 gamma 없이 적용하는 명시적 grayscale 실험 조건이며 XYZ luminance 계수라고 해석하지 않는다. Grayscale 변환 후 절댓값이므로 채널 간 부호 상쇄가 포함되며 `sum(weights×abs(Δ))`와 다르다. 두 방식 모두 중앙20×20 **RGB 평균** gain을 사용하고 입력·프레임·checkpoint·기하·FP32·21채널 decoder를 공유한다. 달라지는 network 입력은 relation/log-relation인18/19번 채널뿐이다.
+
+같은 sample의 두 방식·두 checkpoint에서 numerator/raw q/log q의 전체 extrema 표시 범위를 공유하고 relation/log relation 및 N/D/R/S는 [0,1]로 표시한다. 차이는 grayscale−RGB이며 N 각도(°), D/S 물리 RGB RMS, R 부호 차이를 기록한다. 예측 S head와 renderer F0=.04를 구분하고 실측 GT가 없는 민감도 비교를 정확도 개선으로 주장하지 않는다. 기존 수치·이미지를 보존하며 report.html/index.html에 비교 section을 추가한다. SHA 계산·새 학습·새 checkpoint 선택은 하지 않는다.
+
+### 2026-10-13 실제 renderer의 diffuse-only 진단
+
+사용자 요청으로 F0=.04, normal=(0,0,1), roughness=.5, near4/far12·lamp16·CPU FP32를 고정하고 diffuse 밝기 7수준과 좌우 .03/.6 패턴을 비교했다. [실행기](../experiments/verify_diffuse_gain_relation.py), [진단 보고서](../artifacts/diffuse_gain_relation_20261013_final/index.html), [수치](../artifacts/diffuse_gain_relation_20261013_final/results.json), [검증](../artifacts/diffuse_gain_relation_20261013_final/verification.json)을 따른다. 같은 기하의 대칭 pixel에서 중앙20×20 K는 albedo 잔차를 남기지만 renderer의 픽셀별 diffuse 전달계수 비율 K는 이를 FP32 오차 수준에서 소거한다. 보정 후 잔차의 albedo 항은 `(Ktotal×Afar−Anear)×diffuse`다. Near/Far 비율의 albedo 의존성과 이상적 보정 후 relation의 albedo 의존성을 혼동하지 않는다. 작은 중심 coefficient와 개별 minmax의 FP32 오차 증폭도 수치에 기록했다. 이상적 K는 합성 진단용 oracle이며 실측 gain 규약·network·학습을 변경하지 않는다. FP32 tensor를 `.pt`로 보존했고 SHA는 실행하지 않았다.
 
 ## 2. 대상 자료와 현재 리포트
 
@@ -416,6 +443,7 @@ K_L처럼 공간적으로 일정한 계수는 실제 숫자로 표시하며 단�
 | normal | XYZ encoding RGB. 사진 gamma를 적용하지 않음 |
 
 scalar 표시값은 명시된 범위 `[a,b]`를 이용해 `clip((x-a)/(b-a),0,1)`로 만든다.
+2026-10-13 수정: 모든 scalar의 색상 범례는 원래 수치 범위 `[a,b]`를 표시하고 가운데 눈금은 `(a+b)/2`다. PNG 밝기0~1을 원래 값 범례로 대체하지 않는다. 범위 밖 값·색상 양자화의 검정/흰색 포화와 실제 값0을 구분한다. 기존 중간 scalar의 percentile 표시 범위는 유지하며 추론 배열·수식을 변경하지 않는다.
 고정값 영상 등 퇴화 범위는 표시 helper의 별도 처리를 따른다. 수치 범위를 숨기지 않는다.
 같은 의미의 영상을 비교할 때에는 공통 표시 범위를 사용한다.
 채널별 signed 수치는 gray 영상과 눈금으로 보여주며 사진 RGB와 구분한다.
@@ -613,3 +641,21 @@ gain9·near4/far12·FP32·both 및 프레임 선택 규약은 유지한다.
 
 구현 검사: 크롭·inset 거부·FP32·메모리 준비 등 관련 테스트 34개 통과.
 실측 첫 프레임 검토: [비교 이미지](../artifacts/crop_only_validation_20261012/crop_only_contact.png) · [검증 기록](../artifacts/crop_only_validation_20261012/verification.json). 5묶음 near_00/far_00의 crop support와 눈에 보이는 종이 테두리 제거를 확인했다. 전체 burst 정합 재검토나 새 모델 추론은 수행하지 않았다.
+
+2026-10-14: [원문 Eq.2–5와 구현 항별 시각 검증](../artifacts/relation_equation_visual_20261014/index.html)은 중앙 픽셀 원문식·실측 patch20·합성 gain9·diffuse oracle을 구분한다. [실행기](../experiments/visualize_relation_equations.py)는 실제 renderer와 원문의 상수 조도 대조군을 새 FP32 계산하며, 구현 채널 일치·diffuse 분해·대칭 항등식을 검증한다. 기존 capture/학습 규약은 유지한다.
+
+## 2026-10-19 사용자 승인: 재학습 relmap 7M 실측 정성 보고
+
+사용자 “진행해줘”로 완료된 수정 relmap baseline7m_p01의 best-map135k / 최종 선택 best-render49k를 기존5개10/30cm 묶음에 새 추론했다. [결과](../artifacts/spatial_7m_real_20261019/index.html) · [검증](../artifacts/spatial_7m_real_20261019/verification.json). §1.4의 author_patch20·spatial_inverse_square_v1·FP32·both·현재 공통 정합/프레임 선택을 적용했다. 현재 render A/B/C 학습을 유지하며 CPU2스레드로 실행했다. 078·503은5장 평균, 나머지는near00/far00이며 실측GT/정확도 개선 주장은 없다. 동결checkpoint·기존 결과 보존, SHA-256·denoiser·새NPZ·입력PNG·AMP/TF32 없음.
+
+
+## 2026-10-19 A/B/C 조건별 실측 보고 추가 승인
+사용자가 각 조건 종료 후 동일 실측 5묶음 추론·별도 정성 보고서를 요청했다. artifacts/render_weight_followup_20261019/real_reports/contract.json에 따라 별도 CPU FP32 2thread watcher가 validation 선정 checkpoint와 공통 map135k를 비교한다. 조건별 runs/<arm>/real_report/index.html에 저장하며 기존 합성 report/index.html과 구분한다. 학습 runner/config/checkpoint는 변경하지 않는다. 실측 author_patch20·both·기존 정합/프레임 게이트를 유지하고 gain9를 실측에 적용하지 않는다. 학습 완료 및 메모리 여유를 기다리며 실패 시 자동 재시작하지 않는다. 실측 보고까지 모두 완료해야 heartbeat 완료 처리한다.
+
+## 2026-10-19 사용자 승인: 기존64M·기존7M·변경7M relmap 3조건
+
+사용자가 기존 relmap Fabric64M best-render449k / 기존 relmap 7M best-render32k(누적185k) / 변경 relmap 7M best-render49k(누적204k)의 실측5묶음 비교를 지정했다. [보고서](../artifacts/relmap_three_way_real_20261019/index.html) · [계약](../artifacts/relmap_three_way_real_20261019/experiment_plan.json) · [검증](../artifacts/relmap_three_way_real_20261019/verification.json). 이 artifact의 과거 두 조건에 한해 보존된 relation 함수를 읽기 전용으로 연결하고 공간 계수를 적용하지 않는다. 기존7M의 전체21채널 특징과 과거 함수의 exact equality를 검사했다. 활성 train/eval/inference의 spatial_inverse_square_v1 기본값은 유지한다.
+
+같은 FP32 camera RGB에서 공통 정합·inset0 crop·both·WB/matrix·프레임 게이트와 author_patch20을 새 계산한다. 64M의 near2.414/far10·raw XYZ 및 두7M의 near4/far12·unit XYZ는 보존한다. 공통 재렌더는 near4/far12·lamp16·F0=.04이며 모델별 원래 기하 재렌더는 별도 표기한다. Relmap/log-relmap은 실제 network 채널에서 추출하며 NDRS·near/far 재렌더·ΔE00·L1·MSE를 함께 제공한다. ΔE00 heatmap은 sample/side별 세 조건 공통 범위·범례·clipping 비율을 쓴다. 원래 HTML 특징/픽셀 조회 템플릿도 재사용한다.
+
+두7M의 train/val·seed·기본 설정은 relation 버전 외 일치하지만 학습 경로와 선정 시점은 다르며 기존7M은 memory_paused 실행이다. 크기만/relmap만의 인과 비교나 실측GT 정확도로 해석하지 않는다. 이전2조건(spatial relation을 두 모델 모두 적용) 보고서와 원본 checkpoint는 보존한다. GPU 학습·기본 코드 변경, SHA-256, 새NPZ, denoiser, 입력PNG, AMP/TF32 없이 CPU2스레드로 실행했다.

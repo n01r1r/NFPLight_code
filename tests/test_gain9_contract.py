@@ -76,3 +76,42 @@ def test_capture_patch20_rejects_invalid_support_and_mode():
         m.build_features(x, support, gain_mode="author_patch20")
     with pytest.raises(ValueError, match="unknown capture gain"):
         m.build_features(x, gain_mode="invalid")
+
+
+def test_measured_gain_entrypoint_is_separate_from_training_gain9():
+    m = model(CURRENT_RAW_FEATURE_VERSION)
+    x = torch.full((2, 6, 256, 256), .02)
+    x[0, :3] = .08
+    x[1, :3] = .12
+    original = x.clone()
+    _, _, training_far = m.build_features(x)
+    features, _, measured_far = m.build_capture_features(x)
+    assert torch.equal(x, original)
+    assert torch.allclose(training_far, x[:, 3:] * 9)
+    assert torch.allclose(measured_far[0], x[0, 3:] * 4)
+    assert torch.allclose(measured_far[1], x[1, 3:] * 6)
+    assert torch.allclose((features[:, 6:9]+1)/2, measured_far, atol=1e-7)
+    assert not torch.equal(training_far, measured_far)
+
+
+def test_relation_averages_absolute_rgb_differences_equally():
+    m = NFPLightModel.__new__(NFPLightModel)
+    m.time_co_map = torch.ones(1, 1, 2, 2)
+    m.spatial_attenuation_factor = torch.ones_like(m.time_co_map)
+    m.coefficient = torch.ones(1, 1, 2, 2)
+    m.indenty = torch.ones(1, 1, 2, 2)
+    near = torch.full((1, 3, 2, 2), 0.5)
+    delta = torch.tensor([[[[.3, 0.], [0., .3]],
+                           [[0., .3], [0., -.3]],
+                           [[0., 0.], [.3, 0.]]]])
+    far = near + delta
+    actual_delta = far.clamp(0, 1) - near
+    expected_q = actual_delta.abs().sum(1, keepdim=True) / 3
+    relation, log_relation = m.relationmapExtraction(near, far)
+    assert torch.allclose(relation, 1 - m.ClipToOne(expected_q), atol=1e-6)
+    assert torch.allclose(log_relation, 1 - m.ClipToOne(expected_q.log()), atol=1e-6)
+    assert torch.allclose(relation[0, 0].flatten()[:3], torch.ones(3), atol=1e-6)
+    weights = torch.tensor([.299, .587, .114]).reshape(1, 3, 1, 1)
+    weighted_q = (actual_delta.abs() * weights).sum(1, keepdim=True)
+    assert not torch.allclose(relation, 1 - m.ClipToOne(weighted_q))
+    assert not torch.allclose(expected_q, actual_delta.mean(1, keepdim=True).abs())

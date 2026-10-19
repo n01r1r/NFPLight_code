@@ -18,9 +18,6 @@ from .report_math import formula_html, math_prose, matrix_html, _math, _tokens, 
 
 
 _CONDITIONS = ("both",)
-_NUMERIC_COEFFICIENTS = {"far_gain_scalar", "far_gain_map", "time_co_map", "coefficient",
-                         "coefficient_normalization_max", "denominator"}
-
 
 def _gain_equation_html(value: float) -> str:
     """Render the measured author gain without a network-dependent TeX renderer."""
@@ -47,6 +44,7 @@ document.getElementById('label_'+mode).innerHTML=stageMathLabels[key]||stageLabe
 const source=sc.source_range||sc.range;
 const display=sc.rgb?'색상 영상 · 공통 표시 범위 [0,1].':sc.cmap==='RdBu_r'?'실제 차이 [-1,1] · 파랑: 음수 · 흰색: 0 · 빨강: 양수.':source[0]===0&&source[1]===1?'실제 값 [0,1] · 검정: 0 · 흰색: 1.':'표시 정규화: <math xmlns="http://www.w3.org/1998/Math/MathML"><mi>v</mi><mo>=</mo><mo>clip</mo><mo>(</mo><mfrac><mrow><mi>x</mi><mo>−</mo><mn>'+source[0]+'</mn></mrow><mrow><mn>'+source[1]+'</mn><mo>−</mo><mn>'+source[0]+'</mn></mrow></mfrac><mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></math>';
 document.getElementById('meaning_'+mode).innerHTML=(stageMathDescriptions[key]||stageMathLabels[key]||stageLabels[key])+'<div>'+display+'</div>';
+if(!sc.rgb&&sc.cmap==='gray'&&!(source[0]===0&&source[1]===1)){document.getElementById('meaning_'+mode).innerHTML+='<div>검정·흰색은 표시 범위의 양끝입니다. 범위 밖 값과 PNG 색상 양자화로 포화될 수 있으며, 검정이 원래 값 0을 뜻하지 않습니다.</div>';}
 }
 let value=document.getElementById('scalar_value_'+mode);
 if(!value){value=document.createElement('div');value.id='scalar_value_'+mode;image.before(value)}
@@ -1429,9 +1427,8 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
                               stops=[f"rgb({round(c[0]*255)},{round(c[1]*255)},{round(c[2]*255)}) {i*100/32:.2f}%"
                                      for i, c in enumerate(colors)])
                 continue
+            # Scalar colorbar ticks describe source values, not PNG brightness.
             config["source_range"] = list(config["range"])
-            if key not in _NUMERIC_COEFFICIENTS:
-                config["range"] = [0.0, 1.0]
             config["cmap"] = "gray"
             config["stops"] = ["rgb(0,0,0) 0%", "rgb(255,255,255) 100%"]
     semantic_titles = {record[0]: record[1] for record in _PREDICTION_COMPONENTS}
@@ -1452,6 +1449,18 @@ def _make_html(manifest: dict[str, Any], display_keys: list[str], display_ranges
             f'<details class="stage-info"><summary>저장된 원래 수치와 계산 정보</summary>'
             f'<p>{_math(_frac(_tokens("D−B"), _tokens("W−B")), "(D-B)/(W-B)") if record.get("formula") == "(D-B)/(W-B)" else math_prose(str(record.get("formula", "")))}</p>'
             f'<p class="imgnote" id="note_{mode}"></p><pre id="stats_{mode}"></pre></details></section>')
+    # Saved historical reports retain their original equations. Only traces that
+    # contain the spatial factor advertise the new relation operation.
+    if any("spatial_attenuation_factor" in condition.get("arrays", {})
+           for condition in manifest.get("conditions", {}).values()):
+        factor_row = ("spatial distance", "F(x) = (r_F²/r_N²)/(r_F²/r_N²)_center",
+                      "center = [127,127]", "중심 정규화 거리 제곱 비율; gain과 별도로 한 번 적용합니다.",
+                      "spatial_attenuation_factor")
+        formula_records = [factor_row] + [
+            ("spatial-corrected far", "K = K_L K_θ F; clip(K I_F,0,1)", "FP32 spatial correction",
+             "밝기·각도·거리 보정을 모두 적용한 후 clipping합니다.", key)
+            if key == "far_time_clipped" else (title, lhs, rhs, meaning, key)
+            for title, lhs, rhs, meaning, key in formula_records]
     formula_rows = []
     for title, lhs, rhs, meaning, key in formula_records:
         gallery_link = (' <a href="#feature-gallery-details" onclick="document.getElementById(\'feature-gallery-details\').open=true">전체 feature gallery</a>'
@@ -1661,7 +1670,7 @@ const gainEquations={json.dumps(gain_equations, ensure_ascii=False)};
 {_SCALAR_VALUE_JS}
 function selectedNote(key){{if(key==='features_legacy33_rgb_preview')return 'Display-only alias of the near-input RGB preview for feature channels 0:3 decoded to [0,1]; full 33-channel semantics are in the linked feature gallery.';if(key.startsWith('log_original_6_'))return 'Recorded log-transformed RGB triplet; display only, with no additional WB or gamma.';if(predictionStages[key])return 'Display decode: raw10 channels '+predictionStages[key].channels.join(',')+' → '+predictionStages[key].label+'; raw prediction and channel statistics unchanged.';if(key.includes('signed_diff')||key.includes('near_minus_scaled_far')||key.includes('_difference')||key.endsWith('_delta'))return stageNotes.signed;if(key.includes('bayer'))return stageNotes.bayer;if(key.includes('linear_srgb')||key.includes('input_clipped')||key.includes('input_unclipped')||key.includes('far_gained')||key.includes('far_time'))return stageNotes.linear_srgb;if(key.includes('counts')||key.includes('demosaic_rgb')||key.includes('compensated')||key.includes('whitebalanced')||key.includes('warp512')||key.includes('crop420')||key.includes('output256')||key.includes('libraw'))return stageNotes.counts;return 'FP32 numeric array; PNG is display-only.'}}
 function selectStage(key){{document.getElementById('stage').value=key;document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage===key)));showStage();document.querySelector('.workspace').scrollIntoView({{block:'start'}})}}
-function showStage(){{const key=document.getElementById('stage').value;document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage===key)));const common=Object.hasOwn(manifest.common_array_stats||{{}},key);const sc=scales[key]||{{range:(manifest.display_ranges||{{}})[key]||[0,1],rgb:false,cmap:'gray',stops:[]}};const gamma=Boolean(document.getElementById('gamma22').checked&&sc.rgb&&sc.gammaable!==false);const r=sc.range;document.getElementById('range').textContent=sc.rgb?'shared RGB exposure ['+r[0]+', '+r[1]+']; '+(gamma?'display-only x^(1/2.2)':'gamma off')+(sc.display_fallback?'; '+sc.display_fallback:''):'common scalar range ['+r[0]+', '+r[1]+']; '+sc.cmap+'; gamma/WB not applied.';for(const mode of {json.dumps(modes)}){{const image=document.getElementById('image_'+mode);if(!image)continue;const folder=common?(gamma?'common_display_gamma22':'common_display'):mode+(gamma?'/display_gamma22':'/display');image.src=(sc.scalar_file||folder+'/'+key+'.png');document.getElementById('label_'+mode).textContent=stageLabels[key];const source=sc.source_range||r;document.getElementById('meaning_'+mode).textContent=(stageDescriptions[key]||stageLabels[key])+(sc.rgb?' · 색상 영상입니다.':' · 검정 0 → 흰색 1; 표시값 = clip((원래 값 − '+source[0]+') / ('+source[1]+' − '+source[0]+'), 0, 1). 원래 수치는 아래에 보존됩니다.');const bar=document.getElementById('bar_'+mode);const note=document.getElementById('note_'+mode);if(sc.rgb){{bar.style.display='none'}}else{{bar.style.display='block';const middle=sc.cmap==='gray'&&r[0]<0&&r[1]>0?0:(r[0]+r[1])/2;bar.innerHTML='<div class="bar" style="background:linear-gradient(90deg,'+sc.stops.join(',')+')"></div><div class="ticks"><span>'+r[0]+'</span><span>'+middle+'</span><span>'+r[1]+'</span></div>'}}note.innerHTML=selectedNote(key);const rec=(manifest.conditions||{{}})[mode]||{{}};let shownStats;if(predictionStages[key]){{const a=rec.arrays||{{}};shownStats={{display_only:true,raw_channels:Object.fromEntries(predictionStages[key].channels.map(index=>['prediction_c'+index,a['prediction_c'+index]]))}}}}else{{const base=key.replace(/_c[0-9]+$/,'');const stats=common?(manifest.common_array_stats||{{}})[key]:((rec.arrays||{{}})[key]||(rec.arrays||{{}})[base]);shownStats={{array:stats,input_lower_clip_fraction:rec.input_lower_clip_fraction,input_upper_clip_fraction:rec.input_upper_clip_fraction,clipping:rec.clipping}}}}document.getElementById('stats_'+mode).textContent=JSON.stringify(shownStats,null,2);showScalarValue(key,mode,sc)}}}}
+function showStage(){{const key=document.getElementById('stage').value;document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage===key)));const common=Object.hasOwn(manifest.common_array_stats||{{}},key);const sc=scales[key]||{{range:(manifest.display_ranges||{{}})[key]||[0,1],rgb:false,cmap:'gray',stops:[]}};const gamma=Boolean(document.getElementById('gamma22').checked&&sc.rgb&&sc.gammaable!==false);const r=sc.range;document.getElementById('range').textContent=sc.rgb?'shared RGB exposure ['+r[0]+', '+r[1]+']; '+(gamma?'display-only x^(1/2.2)':'gamma off')+(sc.display_fallback?'; '+sc.display_fallback:''):'common scalar range ['+r[0]+', '+r[1]+']; '+sc.cmap+'; gamma/WB not applied.';for(const mode of {json.dumps(modes)}){{const image=document.getElementById('image_'+mode);if(!image)continue;const folder=common?(gamma?'common_display_gamma22':'common_display'):mode+(gamma?'/display_gamma22':'/display');image.src=(sc.scalar_file||folder+'/'+key+'.png');document.getElementById('label_'+mode).textContent=stageLabels[key];const source=sc.source_range||r;document.getElementById('meaning_'+mode).textContent=(stageDescriptions[key]||stageLabels[key])+(sc.rgb?' · 색상 영상입니다.':' · 검정 0 → 흰색 1; 표시값 = clip((원래 값 − '+source[0]+') / ('+source[1]+' − '+source[0]+'), 0, 1). 원래 수치는 아래에 보존됩니다.');const bar=document.getElementById('bar_'+mode);const note=document.getElementById('note_'+mode);if(sc.rgb){{bar.style.display='none'}}else{{bar.style.display='block';const middle=(r[0]+r[1])/2;bar.innerHTML='<div class="bar" style="background:linear-gradient(90deg,'+sc.stops.join(',')+')"></div><div class="ticks"><span>'+r[0]+'</span><span>'+middle+'</span><span>'+r[1]+'</span></div>'}}note.innerHTML=selectedNote(key);const rec=(manifest.conditions||{{}})[mode]||{{}};let shownStats;if(predictionStages[key]){{const a=rec.arrays||{{}};shownStats={{display_only:true,raw_channels:Object.fromEntries(predictionStages[key].channels.map(index=>['prediction_c'+index,a['prediction_c'+index]]))}}}}else{{const base=key.replace(/_c[0-9]+$/,'');const stats=common?(manifest.common_array_stats||{{}})[key]:((rec.arrays||{{}})[key]||(rec.arrays||{{}})[base]);shownStats={{array:stats,input_lower_clip_fraction:rec.input_lower_clip_fraction,input_upper_clip_fraction:rec.input_upper_clip_fraction,clipping:rec.clipping}}}}document.getElementById('stats_'+mode).textContent=JSON.stringify(shownStats,null,2);showScalarValue(key,mode,sc)}}}}
 function toggleGammaDisplay(){{const on=document.getElementById('gamma22').checked;document.querySelectorAll('.case-image[data-gamma-src]').forEach(image=>image.src=on?image.dataset.gammaSrc:image.dataset.linearSrc);document.querySelectorAll('.prediction-static-gallery.gamma22-gallery').forEach(x=>x.style.display=on?'block':'none');document.querySelectorAll('.prediction-static-gallery:not(.gamma22-gallery)').forEach(x=>x.style.display=on?'none':'block');showStage()}}
 document.querySelectorAll('.stage-button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.stage==={json.dumps(initial_stage)})));document.getElementById('stage').value={json.dumps(initial_stage)};toggleGammaDisplay();</script></main></html>"""
 

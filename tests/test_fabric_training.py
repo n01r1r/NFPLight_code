@@ -67,6 +67,7 @@ def cpu_model():
         setattr(model, prefix + '_light_dis', distance)
     model.coefficient = torch.linspace(0, 1, 256 * 256).reshape(1, 1, 256, 256)
     model.time_co_map = torch.ones_like(model.coefficient) * 0.9
+    model.spatial_attenuation_factor = torch.ones_like(model.time_co_map)
     model.indenty = torch.ones_like(model.coefficient)
     model.net_g = nn.Sequential(nn.Conv2d(21, 10, 1), nn.Tanh())
     return model

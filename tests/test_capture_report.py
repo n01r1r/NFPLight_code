@@ -809,3 +809,19 @@ def test_gain9_feature_semantics_and_header_do_not_claim_patch_estimation():
                     {"near_input_clipped":{"range":[0,1],"rgb":True}}, {}, [])
     assert 'K_L = 9' in page and 'checkpoint 고정 gain' in page
     assert '중앙 20×20' not in page and '118:138' not in page
+
+
+def test_all_scalar_colorbars_keep_source_value_ranges():
+    ranges = {
+        "coefficient_raw": [0.000357986, 0.046411652],
+        "relation_raw": [0.2, 8.1],
+        "relation_log_raw": [-5.2, 2.3],
+        **{f"features_c{i}": [-1.0, 1.0] for i in range(21)},
+    }
+    configs = {key: {"range": list(value), "rgb": False} for key, value in ranges.items()}
+    manifest = {"conditions": {"both": {"arrays": {}}}}
+    page = _make_html(manifest, list(ranges), ranges, configs, {}, [])
+    scales = json.JSONDecoder().raw_decode(page.split("const scales=", 1)[1])[0]
+    for key, expected in ranges.items():
+        assert scales[key]["range"] == scales[key]["source_range"] == expected
+        assert configs[key]["range"] == expected

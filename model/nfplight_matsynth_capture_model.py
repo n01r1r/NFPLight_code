@@ -86,6 +86,7 @@ class MatSynthCaptureModel(MatSynthBaseModel):
             raise ValueError("MatSynthCaptureModel requires strict checkpoint loading")
         checkpoint = torch.load(load_path, map_location="cpu", weights_only=False)
         self.feature_version = checkpoint_feature_version(checkpoint)
+        self.checkpoint_relation_version = checkpoint.get("relation_version", "legacy_no_spatial")
         self.normal_head = checkpoint_normal_head(checkpoint)
         self.unit_normal = (checkpoint.get("normal_decoder") in {"unit normalization before loss/inference", "unit XYZ"}
                             or checkpoint.get("package") == "full_dataset_suite")
@@ -106,9 +107,9 @@ class MatSynthCaptureModel(MatSynthBaseModel):
         """Run feature assembly and the checkpoint-selected fixed decoder."""
         self.net_g.eval()
         with torch.no_grad():
-            inputs, self.relation_map, self.aligned_far_img = self.build_features(
-                self.inputs, gain_mode=getattr(self.args, 'capture_gain_mode', 'checkpoint')
-            )
+            if getattr(self.args, 'capture_gain_mode', 'author_patch20') != 'author_patch20':
+                raise ValueError('measured inference requires author_patch20; training gain is separate')
+            inputs, self.relation_map, self.aligned_far_img = self.build_capture_features(self.inputs)
             raw_prediction = self.net_g(inputs)
             self.pred_svbrdf = apply_normal_head(
                 raw_prediction, normal_head=getattr(self, "normal_head", "xyz")

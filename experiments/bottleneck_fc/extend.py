@@ -10,6 +10,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import torch
+from model.relation_geometry import RELATION_VERSION
 from experiments.bottleneck_fc import run as probe_run
 from experiments.bottleneck_fc.config import (
     atomic_write_json, build_execution_config, file_identity,
@@ -177,6 +178,8 @@ def _source_identities():
 def _load_parent_checkpoint(path, seed, step, execution, environment):
     before = file_identity(path)
     state = torch.load(path, map_location="cpu", weights_only=False)
+    if state.get("relation_version") != RELATION_VERSION:
+        raise ValueError("checkpoint relation_version differs; start a new training lineage")
     if before != file_identity(path):
         raise ValueError(f"parent checkpoint changed while reading: {path}")
     if (state.get("seed") != seed or state.get("arm_id") != "baseline"
@@ -373,7 +376,7 @@ def _copy_parent_prefix(parent_log, destination, endpoint, map_updates):
 def _checkpoint_payload(*, seed, step, stage, actual_map_updates, model, optimizer,
                         history, execution, environment, manifest_identity):
     return {
-        "extension_checkpoint_version": 1,
+        "relation_version": RELATION_VERSION, "extension_checkpoint_version": 1,
         "seed": seed, "arm_id": "baseline", "step": step, "stage": stage,
         "actual_map_updates": actual_map_updates,
         "net_g": model.net_g.state_dict(),
@@ -414,6 +417,8 @@ def _save_checkpoint(run_dir, **values):
 def _load_extension_checkpoint(path, *, seed, execution, environment, manifest_identity):
     before = file_identity(path)
     state = torch.load(path, map_location="cpu", weights_only=False)
+    if state.get("relation_version") != RELATION_VERSION:
+        raise ValueError("checkpoint relation_version differs; start a new training lineage")
     if before != file_identity(path):
         raise ValueError(f"extension checkpoint changed while reading: {path}")
     if (state.get("extension_checkpoint_version") != 1 or state.get("seed") != seed

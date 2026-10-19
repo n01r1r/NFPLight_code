@@ -18,6 +18,7 @@ if __package__ in (None, ""):
 
 import numpy as np
 import torch
+from model.relation_geometry import RELATION_VERSION
 import torch.nn as nn
 
 from data.fabric import pack_svbrdf
@@ -442,6 +443,8 @@ def _run_condition(*, output_dir, execution, settings, invocation, seed, conditi
     last_committed_step = 0
     if resume and checkpoint_path.is_file():
         state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        if state.get("relation_version") != RELATION_VERSION:
+            raise ValueError("checkpoint relation_version differs; start a new training lineage")
         if state.get("condition") != condition["id"] or state.get("seed") != seed or state.get("identity") != identity:
             raise ValueError(f"checkpoint identity mismatch: {checkpoint_path}")
         model.net_g.load_state_dict(state["net_g"])
@@ -566,7 +569,7 @@ def _run_condition(*, output_dir, execution, settings, invocation, seed, conditi
                 checkpoint_stage = "render" if stage == "map" and stage_finished else stage
                 device = getattr(model, "device", torch.device("cpu"))
                 committed = {
-                    "checkpoint_version": 1, "condition": condition["id"], "seed": seed,
+                    "relation_version": RELATION_VERSION, "checkpoint_version": 1, "condition": condition["id"], "seed": seed,
                     "stage": checkpoint_stage, "map_updates": map_updates,
                     "render_updates": render_updates, "map_stopped": map_stopped,
                     "map_plateau": map_plateau, "render_plateau": render_plateau,

@@ -5,5 +5,5 @@
 실제 fabric DNG 비교는 [요구사항](docs/CAPTURE_REQUIREMENTS.md)과 `run_fabric_capture.py`를 사용하며 FP32만 허용하고 기본값·현재 실험도 FP32다.
 실측 capture 실험은 새 data의 5개 10/30cm 묶음이며 활성 photometry 조건은 `both=(D-B)/(W-B)` 하나다. `white_only`·`neither`는 폐지했고 입력을 거부한다. 공통 마커 RMS·crop·무늬 정합 게이트는 통과 시 5장 평균, 실패 시 near_00/far_00 사용이다. 기본 경로는 저자 원본 net_g_real.pth·net_g_syn.pth만 허용하며, 사용자 승인 Fabric 재비교는 요구사항 §1.1의 별도 경로를 사용한다. denoiser·denoising image 사용을 금지한다.
 과거 PNG/FP32 실험·report 파생 스크립트를 활성 코드에 다시 추가하지 않는다.
-활성 Fabric 입력은 raw_calibrated_gain9_v3·near4/far12·고정 gain9다. 새 추론은 지정 artifact 디렉터리에 FP32로 새 계산한다. 기존 best_render.pth 수치 결과는 보존하되 기본 report 비교에서 제외한다. 사용자 승인 새 재추론은 요구사항 §1.1을 따른다.
+학습·합성 validation/test는 raw_calibrated_gain9_v3·near4/far12·고정 gain9이며 실측 inference와 엄격히 구분한다. 실측 inference는 중앙20×20 RGB 평균 near/far 비율(author_patch20)만 사용하고 학습 gain을 적용하지 않는다. 새 FP32 추론·보고와 과거 결과 보존은 요구사항 §1.4를 따른다.
 `.git`·`checkpoints`·`results`·dataset junction의 외부 대상을 재귀 삭제하거나 이동하지 않는다.

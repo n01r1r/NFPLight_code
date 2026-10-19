@@ -20,6 +20,7 @@ def test_capture_shape_and_input_validation():
     model.args = SimpleNamespace(image_size=256)
     model.coefficient = torch.ones(1, 1, 256, 256)
     model.time_co_map = torch.ones(1, 1, 256, 256)
+    model.spatial_attenuation_factor = torch.ones_like(model.time_co_map)
     model.indenty = torch.ones(1, 1, 256, 256)
     model.net_g = DummyEstimator()
     model.normal_head = "phi_theta"
@@ -122,3 +123,12 @@ def test_gain9_exports_and_suite_checkpoints_keep_unit_normal_and_raw_specular(t
         model.test()
         torch.testing.assert_close(model.pred_svbrdf[:,:3].norm(dim=1),torch.ones((1,256,256)))
         assert torch.equal(model.pred_svbrdf[:,7:10],torch.full((1,3,256,256),0.3))
+
+
+def test_capture_rejects_training_gain_mode():
+    import pytest
+    model = MatSynthCaptureModel.__new__(MatSynthCaptureModel)
+    model.args = SimpleNamespace(capture_gain_mode='checkpoint')
+    model.net_g = DummyEstimator()
+    with pytest.raises(ValueError, match='training gain is separate'):
+        model.test()

@@ -2,7 +2,16 @@
 
 `model/nfplight_real_model.py`의 `NFPLightModel`은 초기화와 `test()`에서 새 함수를 사용한다.
 이 파일은 대상 브랜치에 없었으므로 로컬 main의 원본 real 구현을 기반으로 추가했다.
-현재 DNG용 `AuthorRealCaptureAdapter`, 학습 경로와 runner는 수정하지 않았다.
+2026-10-16 사용자 승인: train·eval·inference의 활성 relation 경로에 공통 적용한다.
+`model/relation_geometry.py`의 FP32 공간 계수와 곱셈 순서를 공유한다.
+21채널 `build_features`/`build_capture_features`, real33 `test`, DNG `AuthorRealCaptureAdapter`가 대상이다.
+학습·합성 eval은 gain9, 실측은 patch20을 유지하며 각 경로의 기존 기하·각도·분모·mask·채널 수는 유지한다.
+`feature_version`은 기존 입력/기하 provenance이며 새 `relation_version=spatial_inverse_square_v1`을 별도로 기록한다.
+기존 checkpoint는 새 relation으로 추론 가능하지만 기존 실험의 정확 재현이 아니다. 과거 결과는 덮어쓰지 않는다.
+새 학습 checkpoint는 relation 버전을 기록하며, 보정 전 checkpoint의 optimizer 재개는 거부한다.
+논문 수식 diagnostic `paper_relation`은 인쇄된 수식 비교이므로 변경하지 않는다.
+수용 검사: 거리 계수·경로별 feature 일치, gain 분리, batch/mask, clipping 순서, 역전파,
+checkpoint 재개·버전 거부, report trace와 수식의 일치. 새 전체 학습/실측 재실행은 포함하지 않는다.
 
 - `spatialAttenuationFactor(r_near_squared, r_far_squared)`:
   FP32 `[B,1,H,W]` 거리 제곱에서 `ratio / ratio(center)`를 계산한다.
@@ -38,6 +47,24 @@ python -m pytest -q tests/test_real_spatial_attenuation.py tests/test_author_rea
 ```
 
 CPU 검증은 합성 Lambertian 거리 잔차 소거와 새 함수 호출, FP32, 33채널 구조 및 기존 adapter를 검사한다.
-원본 checkpoint 추론이나 실제 DNG 정확도 개선은 검증하지 않았다.
+PR 병합 당시에는 원본 checkpoint 추론과 실제 DNG 정확도 개선을 검증하지 않았다.
+2026-10-16 공통 적용 후에는 RTX 3090에서 원본 real/syn checkpoint의 FP32 합성 입력 추론과
+real 모델·DNG adapter 예측의 비트 일치를 확인했다. CPU/GPU 학습 역전파와 실제 eval 경로도 검사했다.
+[전체 테스트](../artifacts/relation_review_20261016/pipeline_tests.xml) · [GPU 확인](../artifacts/relation_review_20261016/pipeline_gpu_smoke.json).
+전체 학습과 실제 DNG 묶음 재추론·정확도 개선은 검증하지 않았다. SHA-256 실행은 금지했고 해당 테스트는 제외했다.
 
 Input contract: one FP32 `[1,6,256,256]` pair; other sizes or batches are rejected. PNG export uses the existing Pillow dependency.
+
+
+## 2026-10-16 전체 재학습 준비
+
+이번 권한은 cleanup/refactor/align/test 및 새 실행 설정 준비다. 본 학습·자동 대기열을 시작하지 않는다.
+마지막 활성 전체 데이터 baseline7m_p01의 seed19, 7.61M/dropout .1, train566×16crop,
+val164×4crop, NDRS합, FP32, ReduceLROnPlateau와 기존 예산을 유지한다. 15M은 보류다.
+준비 경로는 `artifacts/spatial_retraining_20261016/runs/baseline7m_p01`이며 기존 run과 분리한다.
+`purpose=training`과 `purpose=smoke`를 immutable execution identity에 기록해 smoke 가중치의 본 학습 재개를 차단한다.
+730개 train/val shard의 map 이름·uint8·16×256×256 header를 검사하며 공식 test payload는 열지 않는다.
+GPU smoke는 실제 완료한 map2/render2 및 모델·Adam·scheduler·RNG·단계의 정확 복원을 검사한다.
+메모리/디스크 pause는 smoke 실패이며, 강제 단계 전환은 `smoke_forced_transition`으로 기록한다.
+소스·데이터 경로/크기/mtime이 달라지면 준비 config와 smoke 증거가 무효화된다. SHA-256은 실행하지 않는다.
+옛 3조건 controller는 이번 준비에서 사용하지 않는다. 실행 경로는 명시적으로 지정해야 한다.

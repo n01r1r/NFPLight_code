@@ -1,4 +1,4 @@
-"""Streaming full-bank FP32 runner for automatically authorized arms1-3."""
+"""Streaming FP32 full-bank training and isolated readiness smoke."""
 import argparse
 import json
 import time
@@ -7,14 +7,16 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 from model.nfplight_model import NFPLightModel
+from model.relation_geometry import RELATION_VERSION
 from benchmark_fabric_leather import Bank, prepare as prepare_features, unit_prediction, fixed_f0, ndrs_loss
 from train_fabric import render_batch, top_view_positions
 from experiments.bottleneck_fc.pipeline import make_lights
 from experiments.regularization.run import _seed
 from experiments.regularization.config import atomic_write_json
 from experiments.robustness_suite.run import create_network, process_lock, memory_observation, memory_is_low, runtime_environment
-from experiments.full_dataset_suite.config import DEFAULT_OUT, ARMS, prepare
+from experiments.full_dataset_suite.config import ARMS, prepare
 from experiments.full_dataset_suite.engine import Engine, neutral_evaluation, load_checkpoint
+from experiments.full_dataset_suite.reporting import inference_payload
 from experiments.full_dataset_suite.storage import require_disk_reserve
 
 class Model(NFPLightModel):
@@ -32,6 +34,11 @@ def render_loss(model,pred,target,valid,lights):
 
 class Pipeline:
     def __init__(self,execution,*,smoke=False):
+        rendering = execution["scientific_settings"]["rendering"]
+        if rendering.get("relation_version") != RELATION_VERSION:
+            raise ValueError("execution relation_version differs from current features")
+        if execution.get("purpose") != ("smoke" if smoke else "training"):
+            raise ValueError("smoke and training execution contracts must stay separate")
         self.execution=execution;self.smoke=smoke
         torch.set_num_threads(4);_seed(execution["policy"]["seed"])
         torch.backends.cuda.matmul.allow_tf32=False
@@ -107,35 +114,72 @@ def run(output,arm,*,resume=False):
             selected=torch.load(Path(output)/"selected.pt",map_location="cpu",weights_only=True)
             require_disk_reserve(output)
             from experiments.full_dataset_suite.engine import atomic_save
-            atomic_save(Path(output)/"net_g_selected_fp32.pth",{"net_g":selected["net_g"],"feature_version":"raw_calibrated_gain9_v3","precision":"float32","normal_decoder":"unit XYZ"})
+            atomic_save(Path(output)/"net_g_selected_fp32.pth", inference_payload(selected, execution))
         return result
 
 def smoke(output,arm):
-    execution=prepare(output,arm)
+    execution=prepare(output,arm,purpose="smoke")
+    require_disk_reserve(output)
+    torch.cuda.reset_peak_memory_stats()
     pipeline,engine=make_engine(output,execution,smoke=True)
-    caps={"map_cap":400000,"render_cap":100000}
+    caps={key: execution["policy"][key] for key in ("map_cap", "render_cap")}
     start=time.perf_counter()
     engine.run(caps,interrupt_after=2)
-    engine.transition()
+    require_smoke_updates(engine.state, map_updates=2, render_updates=0)
+    engine.transition(reason="smoke_forced_transition")
     engine.run(caps,resume=True,interrupt_after=4)
+    require_smoke_updates(engine.state, map_updates=2, render_updates=2)
     before=engine.snapshot()
     engine.restore(load_checkpoint(Path(output)/"last.pt"))
-    if engine.state["total_step"]!=before["state"]["total_step"] or engine.scheduler.state_dict()!=before["scheduler"]:
-        raise AssertionError("smoke restore state differs")
-    for key,value in engine.net.state_dict().items():
-        if not torch.equal(value.cpu(),before["net_g"][key]):raise AssertionError("smoke restored weights differ")
+    verify_smoke_restore(before, engine.snapshot())
     torch.cuda.synchronize()
-    atomic_write_json(Path(output)/"smoke_verification.json",{"passed":True,"arm":arm,"map_updates":2,"render_updates":2,
+    atomic_write_json(Path(output)/"smoke_verification.json",{"passed":True,"purpose":"smoke","relation_version":RELATION_VERSION,"arm":arm,
+        "map_updates":engine.state["map_updates"],"render_updates":engine.state["render_updates"],
+        "full_checkpoint_restore_exact":True, "production_training_started":False, "forced_transition_is_not_convergence":True,
         "train_sample_folders":566,"train_slots":9056,"validation_sample_folders_smoke_only":2,
         "novel_lights":12,"training_lights":40,"elapsed_seconds":time.perf_counter()-start,
         "source_input_identity":execution["file_identities"],"policy":execution["policy"],
         "cuda_peak_allocated_bytes":torch.cuda.max_memory_allocated(),"precision":"float32","amp":False,"tf32":False,"sha256_computed":False})
+
+def verify_smoke_restore(expected, actual, path="checkpoint"):
+    """Check weights, optimizer, scheduler, RNG and phase without hashing."""
+    if torch.is_tensor(expected):
+        equal = torch.is_tensor(actual) and torch.equal(expected, actual)
+    elif isinstance(expected, dict):
+        if not isinstance(actual, dict) or expected.keys() != actual.keys():
+            raise AssertionError(f"smoke restore keys differ: {path}")
+        for key in expected:
+            verify_smoke_restore(expected[key], actual[key], f"{path}.{key}")
+        return
+    elif isinstance(expected, (list, tuple)):
+        if type(expected) is not type(actual) or len(expected) != len(actual):
+            raise AssertionError(f"smoke restore sequence differs: {path}")
+        for index, (left, right) in enumerate(zip(expected, actual)):
+            verify_smoke_restore(left, right, f"{path}[{index}]")
+        return
+    else:
+        equal = expected == actual
+    if not equal:
+        raise AssertionError(f"smoke restore differs: {path}")
+
+
+def require_smoke_updates(state, *, map_updates, render_updates):
+    expected = (map_updates, render_updates, map_updates + render_updates)
+    actual = tuple(state[key] for key in ("map_updates", "render_updates", "total_step"))
+    if state["status"] != "interrupted" or actual != expected:
+        raise RuntimeError(f"smoke incomplete: status={state['status']}, updates={actual}, expected={expected}")
+
 
 def main():
     p=argparse.ArgumentParser();p.add_argument("mode",choices=("prepare","run","smoke"));p.add_argument("--arm",choices=ARMS,required=True)
     p.add_argument("--out",type=Path,required=True);p.add_argument("--resume",action="store_true");a=p.parse_args()
     if a.mode=="prepare":prepare(a.out,a.arm)
     elif a.mode=="smoke":smoke(a.out,a.arm)
-    else:run(a.out,a.arm,resume=a.resume)
+    else:
+        try:
+            run(a.out,a.arm,resume=a.resume)
+        finally:
+            from experiments.full_dataset_suite.reporting import write_offline_report
+            write_offline_report(a.out)
 
 if __name__=="__main__":main()

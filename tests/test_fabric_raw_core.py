@@ -17,6 +17,7 @@ def feature_model():
     model.near_distance, model.far_distance = 2.414, 10.0
     model.coefficient = torch.linspace(.001, 1, 256 * 256).reshape(1, 1, 256, 256)
     model.time_co_map = torch.ones_like(model.coefficient) * .9
+    model.spatial_attenuation_factor = torch.ones_like(model.time_co_map)
     model.indenty = torch.ones_like(model.coefficient)
     return model
 

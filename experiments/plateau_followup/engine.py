@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 import torch
+from model.relation_geometry import RELATION_VERSION
 
 from experiments.regularization.config import atomic_write_json, replace_with_retry
 from experiments.regularization.run import _append_train_row, _truncate_log, _write_history
@@ -150,13 +151,15 @@ class Engine:
             min_lr=self.policy[stage + "_min_lr"], eps=self.policy["eps"])
 
     def snapshot(self):
-        return cpu_tree({"checkpoint_version": 1, "package": "plateau_followup",
+        return cpu_tree({"relation_version": RELATION_VERSION, "checkpoint_version": 1, "package": "plateau_followup",
                          "identity": self.identity, "policy": self.policy,
                          "state": self.state, "net_g": self.net.state_dict(),
                          "optimizer": self.optimizer.state_dict(), "scheduler": self.scheduler.state_dict(),
                          "rng": capture_rng(), "sample_rng": self.samples.getstate(), "d4_rng": self.d4.getstate()})
 
     def restore(self, checkpoint):
+        if checkpoint.get("relation_version") != RELATION_VERSION:
+            raise ValueError("checkpoint relation_version differs; start a new training lineage")
         if checkpoint["identity"] != self.identity or checkpoint["policy"] != self.policy:
             raise ValueError("checkpoint scientific/source/input identity mismatch")
         self.state = copy.deepcopy(checkpoint["state"])
@@ -185,12 +188,12 @@ class Engine:
         for key in ("best_map", "best_render"):
             best = self.state[key]
             if best is not None:
-                atomic_save(self.output / (key + ".pt"), {"checkpoint_version": 1, "package": "plateau_followup",
+                atomic_save(self.output / (key + ".pt"), {"relation_version": RELATION_VERSION, "checkpoint_version": 1, "package": "plateau_followup",
                             "identity": self.identity, **best})
         selected = self.state.get("selected")
         if selected:
             best = self.state[selected]
-            atomic_save(self.output / "selected.pt", {"checkpoint_version": 1, "package": "plateau_followup",
+            atomic_save(self.output / "selected.pt", {"relation_version": RELATION_VERSION, "checkpoint_version": 1, "package": "plateau_followup",
                         "identity": self.identity, "selection": selected, **best})
 
     def commit(self):

@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 import torch
+from model.relation_geometry import RELATION_VERSION
 
 from experiments.regularization.config import atomic_write_json, replace_with_retry
 from experiments.regularization.run import _append_train_row, _truncate_log
@@ -160,7 +161,7 @@ class Engine:
 
     def snapshot(self):
         self.state["seen_slots"] = sorted(self.seen_slots)
-        return cpu_tree({"checkpoint_version": 1, "package": "full_dataset_suite",
+        return cpu_tree({"relation_version": RELATION_VERSION, "checkpoint_version": 1, "package": "full_dataset_suite",
                          "identity": self.identity, "policy": self.policy,
                          "state": self.state, "net_g": self.net.state_dict(),
                          "optimizer": self.optimizer.state_dict(), "scheduler": self.scheduler.state_dict(),
@@ -168,6 +169,8 @@ class Engine:
                          "augmentation_rng": self.augmentation_rng.getstate(), "noise_rng": self.noise_generator.get_state(), "ema": self.ema})
 
     def restore(self, checkpoint):
+        if checkpoint.get("relation_version") != RELATION_VERSION:
+            raise ValueError("checkpoint relation_version differs; start a new training lineage")
         if checkpoint["identity"] != self.identity or checkpoint["policy"] != self.policy:
             raise ValueError("checkpoint scientific/source/input identity mismatch")
         self.state = copy.deepcopy(checkpoint["state"])
@@ -202,12 +205,12 @@ class Engine:
         for key in ("best_map", "best_render"):
             best = self.state[key]
             if best is not None:
-                atomic_save(self.output / (key + ".pt"), {"checkpoint_version": 1, "package": "full_dataset_suite",
+                atomic_save(self.output / (key + ".pt"), {"relation_version": RELATION_VERSION, "checkpoint_version": 1, "package": "full_dataset_suite",
                             "identity": self.identity, **best})
         selected = self.state.get("selected")
         if selected:
             best = self.state[selected]
-            atomic_save(self.output / "selected.pt", {"checkpoint_version": 1, "package": "full_dataset_suite",
+            atomic_save(self.output / "selected.pt", {"relation_version": RELATION_VERSION, "checkpoint_version": 1, "package": "full_dataset_suite",
                         "identity": self.identity, "selection": selected, **best})
 
     def commit(self):
@@ -271,9 +274,9 @@ class Engine:
         self.state["history"].append(entry)
         return convergence["floor_bad_observations"] >= self.policy["floor_observations"]
 
-    def transition(self):
+    def transition(self, *, reason="floor_no_meaningful_improvement"):
         # Preserve the actual last map optimizer/RNG before restoring selected weights.
-        self.state["stop_reasons"]["map"] = "floor_no_meaningful_improvement"
+        self.state["stop_reasons"]["map"] = reason
         atomic_save(self.output / "map_stage_end.pt", self.snapshot())
         self.net.load_state_dict(self.state["best_map"]["net_g"])
         if self.ema is not None:

@@ -32,6 +32,7 @@ from data.fabric import (
     file_hash,
     write_json,
 )
+from model.relation_geometry import RELATION_VERSION
 from model.nfplight_model import NFPLightModel, CURRENT_RAW_FEATURE_VERSION, INPUT_NEAR, INPUT_FAR, INPUT_GAIN
 from model.normal_head import NORMAL_HEADS, POLE_EPS, apply_normal_head
 from network.nfplight_net import TwoBranchNet
@@ -989,7 +990,7 @@ def _configure_performance_profile(profile):
 def build_contract(args, manifest_path):
     source_root = Path(__file__).resolve().parent
     source_names = ("train_fabric.py", "data/fabric.py", "model/nfplight_model.py",
-                    "model/normal_head.py", "network/nfplight_net.py", "utils/render_util.py")
+                    "model/relation_geometry.py", "model/normal_head.py", "network/nfplight_net.py", "utils/render_util.py")
     sources = {name: file_hash(source_root / name) for name in source_names if (source_root / name).is_file()}
     normal_head = getattr(args, "normal_head", "xyz")
     if normal_head not in NORMAL_HEADS:
@@ -1019,7 +1020,7 @@ def build_contract(args, manifest_path):
                                  "phi_pole_policy": "omit_phi_if_either_unit_xy_norm_below_epsilon",
                                  "selection_metrics": "unchanged_normalized_map_l1"},
              "data_policy": data_policy,
-             "input": {"feature_version": FEATURE_VERSION, "quantize": False, "gamma": 0,
+             "input": {"relation_version": RELATION_VERSION, "feature_version": FEATURE_VERSION, "quantize": False, "gamma": 0,
                        "near": RENDER_NEAR, "far": RENDER_FAR, "fixed_gain": INPUT_GAIN, "lamp_intensity": 16,
                        "denoiser": False, "augmentation": augmentation,
                        "loss_probe_seed": LOSS_PROBE_SEED},
@@ -1298,7 +1299,7 @@ def save_checkpoint(path, model, contract, state, *, optimizer=None, rng=None, m
     feature_version = getattr(model, "feature_version", FEATURE_VERSION)
     if contract.get("input", {}).get("feature_version") == FEATURE_VERSION and feature_version != FEATURE_VERSION:
         raise ValueError("RAW Fabric checkpoints must use raw_calibrated_gain9_v3")
-    payload = {"format": CHECKPOINT_FORMAT, "feature_version": getattr(model, "feature_version", FEATURE_VERSION),
+    payload = {"relation_version": RELATION_VERSION, "format": CHECKPOINT_FORMAT, "feature_version": getattr(model, "feature_version", FEATURE_VERSION),
                "params": copy.deepcopy(model.net_g.state_dict()), "contract": copy.deepcopy(contract),
                "state": copy.deepcopy(state), "metrics": copy.deepcopy(metrics),
                "refs": copy.deepcopy(refs if refs is not None else state.get("refs", {})),
@@ -1326,6 +1327,8 @@ def load_checkpoint(path, model, contract, *, optimizer=None, rng=None, augmenta
         raise ValueError("not a Fabric training v2 checkpoint")
     if contract.get("input", {}).get("feature_version") == FEATURE_VERSION and payload.get("feature_version") != FEATURE_VERSION:
         raise ValueError("RAW Fabric checkpoints must use raw_calibrated_gain9_v3")
+    if optimizer is not None and payload.get("relation_version") != RELATION_VERSION:
+        raise ValueError("checkpoint relation_version differs; start a new training lineage")
     schedule_migration = False
     performance_migration = False
     if payload.get("contract") != contract and allow_render_schedule_migration:

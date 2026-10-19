@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from utils import svBRDF
+from .relation_geometry import RELATION_VERSION, planar_spatial_factor, spatial_far
 
 CURRENT_RAW_FEATURE_VERSION = 'raw_calibrated_gain9_v3'
 INPUT_NEAR = 4.0
@@ -28,6 +29,7 @@ def checkpoint_feature_version(checkpoint):
 class NFPLightModel():
     # Legacy callers construct small __new__ fixtures and subclasses without
     # running this initializer; keep their established FP32 contract.
+    relation_version = RELATION_VERSION
     compute_dtype = torch.float32
     precision = 'float32'
     capture_precision = False
@@ -79,6 +81,8 @@ class NFPLightModel():
         self.far_light_dir, _, self.far_light_dis, _ = self.renderer.torch_generate(self.far_central, self.far_central,pos=self.surface)
                 
         self.coefficient,self.time_co_map = self.coefficientGeneration()
+        self.spatial_attenuation_factor = planar_spatial_factor(
+            256, self.near_distance, self.far_distance, self.device)
         self.indenty = torch.ones(1, 1, 256, 256, dtype=self.compute_dtype, device=self.device)
     def coefficientGeneration(self):
         compute_dtype = getattr(self, 'compute_dtype', torch.float32)
@@ -160,7 +164,7 @@ class NFPLightModel():
         return (feature - low) / (high - low).clamp(min=1e-5)
     
     def relationmapExtraction(self,near_img,aligned_far_central_img, valid_mask=None):
-        diffFeature = torch.clip(self.time_co_map*aligned_far_central_img,0,1)-near_img
+        diffFeature = spatial_far(aligned_far_central_img, self.time_co_map, self.spatial_attenuation_factor).clamp(0, 1)-near_img
         diffFeature = torch.mean(torch.abs(diffFeature), dim=1, keepdim=True)
         relation_map = diffFeature / torch.clamp(self.coefficient,min=1e-5)
         log_relation_map = torch.log(relation_map.clamp(min=1e-5))
@@ -168,9 +172,15 @@ class NFPLightModel():
         # relation_map = torch.ones_like(relation_map)-relation_map
         return (self.indenty-self.ClipToOne(relation_map, valid_mask),
                 self.indenty-self.ClipToOne(log_relation_map, valid_mask))
+    def build_capture_features(self, inputs, valid_mask=None):
+        """Measured inference: center 20x20 RGB mean ratio, never training gain."""
+        return self.build_features(inputs, valid_mask=valid_mask, gain_mode='author_patch20')
+
     def build_features(self, inputs, valid_mask=None, *, gain_mode='checkpoint'):
         """Linear [B,6,256,256] -> 21 features, optional bool pixel support.
 
+        The default is the synthetic training/evaluation contract. Measured
+        inference must call build_capture_features instead.
         Invalid source/warp pixels are blacked out and excluded from relation
         normalization, then flagged in the existing mask channel. No new channels.
         """
@@ -258,6 +268,7 @@ class NFPLightModel():
             'specular': 'linear RGB F0 [0,1]',
             'roughness': 'perceptual GGX roughness [.05,1]; alpha=roughness**2',
             'feature_version': getattr(self, 'feature_version', 'legacy_batch_v0'),
+            'relation_version': self.relation_version,
             'negative_normal_z_fraction': float((maps['normal'][:, 2] < 0).float().mean()),
             'roughness_floor_fraction': float(((values[:, 6:7] + 1) / 2 < 0.05).float().mean()),
             'normal_head': getattr(self, 'normal_head', 'xyz'),

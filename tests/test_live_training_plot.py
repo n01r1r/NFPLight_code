@@ -3,6 +3,38 @@ from pathlib import Path
 from live_training_plot import LogReader, plateau
 
 
+def test_inherited_map_history_stops_at_selected_weight_and_keeps_current_status(tmp_path):
+    parent = tmp_path/'parent'
+    arm = tmp_path/'arm'
+    parent.mkdir()
+    arm.mkdir()
+    records = [{'stage': 'map', 'step': i, 'total_step': i, 'loss': float(i)} for i in (1, 2, 3)]
+    records.append({'stage': 'render', 'step': 1, 'total_step': 4, 'loss': 99.})
+    original = ''.join(json.dumps(row)+'\n' for row in records)
+    (parent/'train.jsonl').write_text(original)
+    (parent/'validation.json').write_text(json.dumps({'history': [
+        {'stage': row['stage'], 'step': row['step'], 'total_step': row['total_step'], 'render_l1': row['loss']}
+        for row in records]}))
+    (arm/'display_history.json').write_text(json.dumps({'source_run': '../parent', 'stage': 'map', 'through_total_step': 2}))
+    (arm/'status.json').write_text(json.dumps({'status': 'queued'}))
+    reader = LogReader(arm)
+    queued = reader.snapshot()
+    assert queued['train']['map:loss'] == [[1, 1., 1.], [2, 2., 1.5]]
+    assert queued['val']['map:render_l1'] == [[1, 1.], [2, 2.]]
+    assert queued['status'] == {'status': 'queued'}
+    assert queued['latest'] is None and queued['latest_validation'] is None
+    assert queued['rows_read'] == 0 and queued['inherited_history']['rows_read'] == 2
+    (arm/'train.jsonl').write_text(json.dumps({'stage': 'render', 'step': 1, 'total_step': 3, 'loss': 7.})+'\n')
+    (arm/'validation.json').write_text(json.dumps({'history': [{'stage': 'render', 'step': 0, 'total_step': 2, 'render_l1': .1}]}))
+    result = reader.snapshot()
+    assert result['train_smooth']['render:loss'] == [[3, 7., 7.]]
+    assert result['latest']['total_step'] == 3 and result['latest_validation']['stage'] == 'render'
+    assert result['rows_read'] == 1
+    assert result['val']['render:render_l1'] == [[2, .1]]
+    assert (parent/'train.jsonl').read_text() == original
+    assert reader.snapshot()['inherited_history']['rows_read'] == 2
+
+
 def test_plateau_uses_ndr_and_separates_stages():
     history=[{'stage':'map','step':i*1000,'map_normal':1.,'map_diffuse':1.,'map_roughness':1.,'map_specular':i} for i in range(11)]
     assert plateau(history,'map')['status']=='plateau'
@@ -11,6 +43,39 @@ def test_plateau_uses_ndr_and_separates_stages():
     assert plateau(history,'map')['streak']==0
     history[-1]['map_normal']=float('nan')
     assert plateau(history,'map')['status']=='missing_or_invalid_metric'
+
+
+def test_trainer_plateau_uses_recorded_ndrs_state_and_policy(tmp_path):
+    history = [{'stage': 'map', 'map_normal': 1., 'map_diffuse': 1., 'map_roughness': 1.} for _ in range(30)]
+    status = {'convergence': {
+        'map': {'meaningful_best': .12, 'floor_bad_observations': 7, 'floor_reached': True},
+        'render': {'meaningful_best': None, 'floor_bad_observations': 0, 'floor_reached': False}}}
+    policy = {'floor_observations': 20, 'map_monitor': 'heldout.ndrs_sum', 'render_monitor': 'heldout.render_l1'}
+    (tmp_path/'validation.json').write_text(json.dumps({'history': history}))
+    (tmp_path/'status.json').write_text(json.dumps(status))
+    (tmp_path/'execution_config.json').write_text(json.dumps({'policy': policy}))
+    result = LogReader(tmp_path).snapshot()['plateau']
+    assert result['map']['source'] == 'trainer'
+    assert result['map']['metric_label'] == 'NDRS sum'
+    assert result['map']['status'] == 'floor_wait'
+    assert (result['map']['streak'], result['map']['target']) == (7, 20)
+    assert result['render']['status'] == 'not_started'
+    assert result['render']['metric_label'] == 'Render L1'
+    # A meaningful improvement resets the trainer counter even if legacy diagnostics remain flat.
+    status['convergence']['map'].update(meaningful_best=.119, floor_bad_observations=0)
+    assert plateau(history, 'map', status, policy)['streak'] == 0
+    policy['floor_observations'] = 8
+    status['convergence']['map']['floor_bad_observations'] = 8
+    assert plateau(history, 'map', status, policy)['status'] == 'plateau'
+    assert plateau(history, 'map', status, policy)['target'] == 8
+
+
+def test_trainer_plateau_does_not_invent_missing_policy():
+    status = {'convergence': {'map': {'meaningful_best': .12, 'floor_bad_observations': 7, 'floor_reached': True}}}
+    result = plateau([], 'map', status)
+    assert result['source'] == 'trainer'
+    assert result['status'] == 'missing_trainer_policy_or_state'
+    assert result['target'] is None
 
 
 def test_incremental_partial_and_rewritten_logs(tmp_path):

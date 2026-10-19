@@ -35,3 +35,8 @@ CPU 테스트는 합·S gradient·invalid support/NaN 거부·normal 유지·실
 ## 사용자 설명에 따른 샘플 단위 명확화
 
 사용자의 여러 crop 지시는 같은 계열 이름의 여러 폴더에서 각 폴더의 각 샘플마다 여러 crop을 활용한다는 뜻이다. 현재 manifest의 material_id는 원본 샘플 폴더 식별자이며 고유 물질 종류 수를 뜻하지 않는다. 같은 family/group_id의 폴더들도 각각 학습 대상이고 대표 하나로 합치지 않는다. Group은 split 분리에만 사용한다. train566개 원본 샘플 폴더 각각의 N/D/R/S 배열 헤더에서16crop을 확인했다(총9056crop). 검사는 헤더만 읽었으며 픽셀·공식 test·SHA는 검사하지 않았다. [폴더별 검사 기록](../artifacts/full_lightweight_nine_20261011/sample_folder_crop_audit.json)을 따른다.
+
+
+## 2026-10-19 승인된 render 계수 선별 실험
+
+사용자가 제안된 A/B/C 순차 실행과 조건별 정성 보고서를 승인했다. [별도 계약](../artifacts/render_weight_followup_20261019/EXPERIMENT_CONTRACT_KO.md)의 scoped runner에서만 render weight1/10 및 초기LR1e-4/1e-5를 비교한다. 기존 전체 trainer의 계수1·기존 lineage는 유지하며 unit XYZ·NDRS합·FP32·고정F0 계약은 변경하지 않는다. Test는 보고 전용이며 기존에 관측한 모집단이므로 독립 최종 검증으로 해석하지 않는다.

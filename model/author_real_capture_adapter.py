@@ -16,6 +16,7 @@ from torch import nn
 
 from network.nfplight_net import TwoBranchNet
 from .paper_equations import paper_relation
+from .relation_geometry import RELATION_VERSION, planar_spatial_factor, spatial_far
 
 
 IMAGE_SIZE = 256
@@ -123,7 +124,7 @@ def assemble_legacy33_features(
     coefficient_max: torch.Tensor,
     *, equation_mode: str = "author_code", fixed_gain: float | None = None,
 ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-    """Build and expose the authors' exact 33 channels from one FP32 pair."""
+    """Build 33 channels with spatially corrected relation from one FP32 pair."""
     if original.shape != (1, 6, IMAGE_SIZE, IMAGE_SIZE):
         raise ValueError(f"expected original [1,6,256,256], got {tuple(original.shape)}")
     if original_copy.shape != original.shape:
@@ -151,7 +152,9 @@ def assemble_legacy33_features(
             raise ValueError("fixed gain requires author_code and a positive finite value")
         gain = near.new_full((1, 1, 1, 1), fixed_gain)
     far_gained_unclipped = far * gain
-    far_time_unclipped = time_coefficient * far_gained_unclipped
+    factor = (planar_spatial_factor(IMAGE_SIZE, 4., 12., original.device)
+              if paper is None else torch.ones_like(coefficient))
+    far_time_unclipped = spatial_far(far_gained_unclipped, time_coefficient, factor)
     far_time_clipped = far_time_unclipped.clamp(0, 1)
     original_copy_near = near
     # Paper RM uses scalar means before subtraction/abs, not RGB diagnostics.
@@ -213,7 +216,9 @@ def assemble_legacy33_features(
         "features_unscaled_33": unscaled_features,
         "features_legacy33": features,
     }
-    if paper is not None:
+    if paper is None:
+        trace["spatial_attenuation_factor"] = factor
+    else:
         trace.update(paper)
     for name, value in trace.items():
         if value.dtype != torch.float32:
@@ -236,6 +241,7 @@ class AuthorRealCaptureAdapter:
         self.device = torch.device(device)
         self.compute_dtype = torch.float32
         self.feature_version = FEATURE_VERSION
+        self.relation_version = RELATION_VERSION
         self.normal_head = NORMAL_HEAD
         self.geometry_setup_dtype = GEOMETRY_SETUP_DTYPE
         self.geometry_buffer_dtype = GEOMETRY_BUFFER_DTYPE

@@ -61,6 +61,7 @@
       "experiments/bottleneck_fc/config.py",
       "experiments/bottleneck_fc/pipeline.py",
       "model/nfplight_model.py",
+      "model/relation_geometry.py",
       "network/nfplight_net.py",
       "network/base_net.py",
       "data/fabric.py",

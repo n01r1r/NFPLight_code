@@ -1,5 +1,7 @@
 # Fabric + Leather subset 확장 및 학습 노출량 점검
 
+학습 및 합성 validation/test의 고정 gain9는 실측 inference 계약이 아니다. 실측은 중앙20×20 RGB 평균 비율을 사용하며 [CAPTURE_REQUIREMENTS §1.4](CAPTURE_REQUIREMENTS.md#14-2026-10-13-사용자-확정-학습과-실측-추론-분리)를 따른다.
+
 ## 독립 세션의 현재 기준
 
 [학습 scheduler 정책](TRAINING_SCHEDULER_POLICY.md) → [현재 학습 상태](CURRENT_TRAINING_STATE.md) → [artifact 인덱스](../artifacts/training_artifact_index.json)를 먼저 읽는다. 아래 데이터 계약·구현 설명·날짜별 실행은 해당 범위의 기록이다. 새 default는ReduceLROnPlateau지만기존trainer는cosine/고정LR이며새default구현은미완료다. 옛예산·seed·실행명령을새후속계약으로복사하지않는다. 2026-10-09 Go 후 현재 단일seed19의 validation best·종료·전환·best복원·넉넉한 연장 예산은 [후속 계약](PLATEAU_FOLLOWUP.md)을 적용하며 별도 runner의 구현·검사를 마쳐 7.61M seed19 학습을 시작했다. 실제 진행과 예산은 현재 상태 문서의 run 기록을 따른다. 현재완료된7.61M/15.09M을재개대기라고해석하지않는다.
