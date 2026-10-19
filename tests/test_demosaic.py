@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import capture_processing.demosaic as demosaic_module
-from capture_processing.demosaic import demosaic_ahd
+import nfplight.demosaic as demosaic_module
+from nfplight.demosaic import demosaic_ahd
 
 
 _CFAS = (

@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "cuda_resumed_7m_fixture": {
+    "passed": true,
+    "device": "cuda",
+    "dataset_device": "cuda",
+    "actual_7m_backward_and_adam_exact": true,
+    "checkpoint": {
+      "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\last.pt",
+      "size": 154422587,
+      "mtime_ns": 1792397166833437500
+    },
+    "restored_optimizer_and_rng": true,
+    "network_input_shape": [
+      1,
+      21,
+      32,
+      32
+    ],
+    "actual_dataset_crop_d4_and_features_exact": true,
+    "material_id": "0139_fabric_suit_vintage",
+    "research_training_started": false,
+    "gpu_production_next_step_tested": false,
+    "sha256_computed": false
+  },
+  "full_resolution_objective": {
+    "passed": true,
+    "device": "cpu",
+    "shape": [
+      1,
+      10,
+      256,
+      256
+    ],
+    "lights": 40,
+    "render_weight": 10,
+    "preparation_and_loss_and_gradient_exact": true,
+    "research_training_started": false
+  },
+  "phase_transition_and_stop": {
+    "passed": true,
+    "map_transition_render_stop_and_full_state_exact": true,
+    "map_updates": 2,
+    "render_updates": 2,
+    "device": "cpu",
+    "fixture": "small linear/dropout model"
+  },
+  "current_C_resume_gate": {
+    "passed": true,
+    "checkpoint": {
+      "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\last.pt",
+      "size": 154499259,
+      "mtime_ns": 1792399238410976600
+    },
+    "step": 156000,
+    "runtime_and_all_data_identities_valid": true,
+    "environment_exact": true,
+    "full_checkpoint_restore_exact": true,
+    "sha256_computed": false
+  }
+}

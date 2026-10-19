@@ -1,0 +1,37 @@
+{
+  "warp_size": 512,
+  "crop_margin": 0,
+  "output_size": 256,
+  "max_marker_rms_px": 1.0,
+  "burst_count": 5,
+  "photometry": "both",
+  "inset": 0.0,
+  "sample_side_cm": 5.0,
+  "spatial_policy": "robust_target",
+  "target": {
+    "detection_size": 1024,
+    "blur_size": 5,
+    "canny_low": 20,
+    "canny_high": 60,
+    "close_size": 5,
+    "polygon_epsilon": 0.02,
+    "min_area_fraction": 0.025,
+    "max_area_fraction": 0.7,
+    "min_rectangularity": 0.85,
+    "min_edge_support": 0.55,
+    "edge_tolerance_px": 3,
+    "inset_pixels": 2.0,
+    "line_band_px": 20,
+    "line_votes": 30,
+    "min_line_fraction": 0.3,
+    "line_gap_px": 15,
+    "min_line_cosine": 0.98,
+    "line_distance_weight": 10.0
+  },
+  "registration": {
+    "min_shared_tags": 3,
+    "max_trials": 256,
+    "min_axis_span": 0.35,
+    "max_rejected_fraction": 0.25
+  }
+}

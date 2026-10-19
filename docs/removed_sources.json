@@ -1,0 +1,1016 @@
+{
+  "removed_files": [
+    {
+      "path": "audit_fabric_leather_data.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 7149,
+      "mtime_ns": 1792394517443432200
+    },
+    {
+      "path": "benchmark_fabric_leather.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 16386,
+      "mtime_ns": 1792394517444433600
+    },
+    {
+      "path": "capture_processing/__init__.py",
+      "reason": "replaced core primitive",
+      "size": 847,
+      "mtime_ns": 1792394517445432700
+    },
+    {
+      "path": "capture_processing/burst.py",
+      "reason": "replaced core primitive",
+      "size": 37593,
+      "mtime_ns": 1792394517446433100
+    },
+    {
+      "path": "capture_processing/demosaic.py",
+      "reason": "replaced core primitive",
+      "size": 19903,
+      "mtime_ns": 1792394517447433100
+    },
+    {
+      "path": "capture_processing/difference_visualization.js",
+      "reason": "replaced core primitive",
+      "size": 3237,
+      "mtime_ns": 1792394517448433300
+    },
+    {
+      "path": "capture_processing/difference_visualization.py",
+      "reason": "replaced core primitive",
+      "size": 11592,
+      "mtime_ns": 1792394517448433300
+    },
+    {
+      "path": "capture_processing/geometry.py",
+      "reason": "replaced core primitive",
+      "size": 20333,
+      "mtime_ns": 1792394517449433900
+    },
+    {
+      "path": "capture_processing/memory_refresh.py",
+      "reason": "replaced core primitive",
+      "size": 17157,
+      "mtime_ns": 1792394517450433900
+    },
+    {
+      "path": "capture_processing/paper_comparison.py",
+      "reason": "replaced core primitive",
+      "size": 3567,
+      "mtime_ns": 1792394517450433900
+    },
+    {
+      "path": "capture_processing/photometry.py",
+      "reason": "replaced core primitive",
+      "size": 5014,
+      "mtime_ns": 1792394517451434400
+    },
+    {
+      "path": "capture_processing/pseudo_far.py",
+      "reason": "replaced core primitive",
+      "size": 27380,
+      "mtime_ns": 1792394517452434300
+    },
+    {
+      "path": "capture_processing/raw.py",
+      "reason": "replaced core primitive",
+      "size": 7050,
+      "mtime_ns": 1792394517452434300
+    },
+    {
+      "path": "capture_processing/rendering_loss_analysis.py",
+      "reason": "replaced core primitive",
+      "size": 1545,
+      "mtime_ns": 1792394517453434600
+    },
+    {
+      "path": "capture_processing/report.py",
+      "reason": "replaced core primitive",
+      "size": 182788,
+      "mtime_ns": 1792394517454434900
+    },
+    {
+      "path": "capture_processing/report_math.py",
+      "reason": "replaced core primitive",
+      "size": 7162,
+      "mtime_ns": 1792394517455435100
+    },
+    {
+      "path": "cue_explorer_template.html",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 52074,
+      "mtime_ns": 1792394517456435400
+    },
+    {
+      "path": "data/fabric.py",
+      "reason": "replaced core primitive",
+      "size": 20174,
+      "mtime_ns": 1792394517457435500
+    },
+    {
+      "path": "docs/CAPTURE_REQUIREMENTS.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 58819,
+      "mtime_ns": 1792394517458435800
+    },
+    {
+      "path": "docs/CHECKPOINT_STORAGE_POLICY.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3691,
+      "mtime_ns": 1792394517459436400
+    },
+    {
+      "path": "docs/CURRENT_TRAINING_STATE.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 28749,
+      "mtime_ns": 1792394517460436300
+    },
+    {
+      "path": "docs/FABRIC_LEATHER_TRAINING.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 20143,
+      "mtime_ns": 1792394517461436900
+    },
+    {
+      "path": "docs/PLATEAU_FOLLOWUP.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6130,
+      "mtime_ns": 1792394517461436900
+    },
+    {
+      "path": "docs/PONYTAIL_AUDIT_20261012.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6971,
+      "mtime_ns": 1792394517462436700
+    },
+    {
+      "path": "docs/REAL_SPATIAL_ATTENUATION.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5967,
+      "mtime_ns": 1792394517462436700
+    },
+    {
+      "path": "docs/REGULARIZATION_PROBE.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5637,
+      "mtime_ns": 1792394517463436800
+    },
+    {
+      "path": "docs/ROBUSTNESS_SUITE.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5233,
+      "mtime_ns": 1792394517464437300
+    },
+    {
+      "path": "docs/TRAINING_HTML_REPORT_CONTRACT.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 15061,
+      "mtime_ns": 1792394517464437300
+    },
+    {
+      "path": "docs/TRAINING_OBJECTIVE_POLICY.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5327,
+      "mtime_ns": 1792394517465437500
+    },
+    {
+      "path": "docs/TRAINING_POLICY_STATE.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 7728,
+      "mtime_ns": 1792394517466437700
+    },
+    {
+      "path": "docs/TRAINING_SCHEDULER_POLICY.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 11468,
+      "mtime_ns": 1792394517466437700
+    },
+    {
+      "path": "docs/WEIGHT_HANDOFF_20261019.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8266,
+      "mtime_ns": 1792394517467437800
+    },
+    {
+      "path": "docs/archive/BOTH_ONLY_CAPTURE_CONTRACT_20261001.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 768,
+      "mtime_ns": 1792394517468437700
+    },
+    {
+      "path": "docs/archive/CLEANUP.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 10876,
+      "mtime_ns": 1792394517469437600
+    },
+    {
+      "path": "docs/archive/DNG_AUTHOR_REAL_PIPELINE_20261001.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 13095,
+      "mtime_ns": 1792394517470438600
+    },
+    {
+      "path": "docs/archive/DNG_PIPELINE_AUDIT_20261001.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 35859,
+      "mtime_ns": 1792394517470438600
+    },
+    {
+      "path": "docs/archive/NFPLight_fabric_scratch_plan.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 41533,
+      "mtime_ns": 1792394517471439300
+    },
+    {
+      "path": "docs/archive/NFPLight_matsynth_scratch_plan.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 16559,
+      "mtime_ns": 1792394517472438600
+    },
+    {
+      "path": "docs/archive/NFPLight_redteam.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 7489,
+      "mtime_ns": 1792394517473438700
+    },
+    {
+      "path": "docs/archive/PAPER_EQUATION_COMPARISON_20261002.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3643,
+      "mtime_ns": 1792394517474439700
+    },
+    {
+      "path": "docs/archive/PSEUDO_FAR_INVERSE_SQUARE_20261002.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6647,
+      "mtime_ns": 1792394517474439700
+    },
+    {
+      "path": "docs/archive/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3235,
+      "mtime_ns": 1792394517475439600
+    },
+    {
+      "path": "docs/archive/REPORT_NOTATION_DISPLAY_20261002.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1795,
+      "mtime_ns": 1792394517476440400
+    },
+    {
+      "path": "docs/archive/capture_10cm30cm_burst_checks.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 9739,
+      "mtime_ns": 1792394517476440400
+    },
+    {
+      "path": "docs/archive/capture_10cm30cm_inventory.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 10835,
+      "mtime_ns": 1792394517477440100
+    },
+    {
+      "path": "docs/archive/cleanup_removed.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 13391,
+      "mtime_ns": 1792394517478439700
+    },
+    {
+      "path": "docs/archive/completed_refinement_sources.zip",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 179888,
+      "mtime_ns": 1792394517479439300
+    },
+    {
+      "path": "docs/archive/document_cleanup_20261003.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2669,
+      "mtime_ns": 1792394517480439800
+    },
+    {
+      "path": "docs/archive/precision_reset.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1741,
+      "mtime_ns": 1792394517481439700
+    },
+    {
+      "path": "docs/archive/preservation_verification.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 824,
+      "mtime_ns": 1792394517481439700
+    },
+    {
+      "path": "docs/cue_multiscale_design.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 16132,
+      "mtime_ns": 1792394517482440500
+    },
+    {
+      "path": "docs/weights/training_settings_20261019.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 15203,
+      "mtime_ns": 1792394517483440700
+    },
+    {
+      "path": "doctor_training_policy.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 20456,
+      "mtime_ns": 1792394517484440600
+    },
+    {
+      "path": "experiments/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 0,
+      "mtime_ns": 1792394517485441100
+    },
+    {
+      "path": "experiments/bottleneck_fc/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8288,
+      "mtime_ns": 1792394517486440900
+    },
+    {
+      "path": "experiments/bottleneck_fc/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 0,
+      "mtime_ns": 1792394517486440900
+    },
+    {
+      "path": "experiments/bottleneck_fc/archive_stage.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3507,
+      "mtime_ns": 1792394517487442200
+    },
+    {
+      "path": "experiments/bottleneck_fc/config.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 4832,
+      "mtime_ns": 1792394517488443000
+    },
+    {
+      "path": "experiments/bottleneck_fc/config.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 28144,
+      "mtime_ns": 1792394517488443000
+    },
+    {
+      "path": "experiments/bottleneck_fc/extend.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 47942,
+      "mtime_ns": 1792394517489443000
+    },
+    {
+      "path": "experiments/bottleneck_fc/extension_controller.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5202,
+      "mtime_ns": 1792394517490443200
+    },
+    {
+      "path": "experiments/bottleneck_fc/extension_policy.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1059,
+      "mtime_ns": 1792394517491443400
+    },
+    {
+      "path": "experiments/bottleneck_fc/manage.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 4507,
+      "mtime_ns": 1792394517491443400
+    },
+    {
+      "path": "experiments/bottleneck_fc/models.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3174,
+      "mtime_ns": 1792394517492443700
+    },
+    {
+      "path": "experiments/bottleneck_fc/pipeline.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 9305,
+      "mtime_ns": 1792394517492443700
+    },
+    {
+      "path": "experiments/bottleneck_fc/report.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 9647,
+      "mtime_ns": 1792394517493443900
+    },
+    {
+      "path": "experiments/bottleneck_fc/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 33916,
+      "mtime_ns": 1792394517494444100
+    },
+    {
+      "path": "experiments/capacity_crop_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5799,
+      "mtime_ns": 1792394517495444200
+    },
+    {
+      "path": "experiments/full_dataset_suite/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1917,
+      "mtime_ns": 1792394517496444400
+    },
+    {
+      "path": "experiments/full_dataset_suite/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 82,
+      "mtime_ns": 1792394517496444400
+    },
+    {
+      "path": "experiments/full_dataset_suite/config.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8012,
+      "mtime_ns": 1792394517497444000
+    },
+    {
+      "path": "experiments/full_dataset_suite/controller.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 4851,
+      "mtime_ns": 1792394517498444400
+    },
+    {
+      "path": "experiments/full_dataset_suite/engine.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 21331,
+      "mtime_ns": 1792394517498444400
+    },
+    {
+      "path": "experiments/full_dataset_suite/reporting.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2176,
+      "mtime_ns": 1792394517499445600
+    },
+    {
+      "path": "experiments/full_dataset_suite/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 11722,
+      "mtime_ns": 1792394517500444600
+    },
+    {
+      "path": "experiments/full_dataset_suite/storage.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 343,
+      "mtime_ns": 1792394517500444600
+    },
+    {
+      "path": "experiments/intermediate_capacity/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2689,
+      "mtime_ns": 1792394517501444300
+    },
+    {
+      "path": "experiments/intermediate_capacity/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 11239,
+      "mtime_ns": 1792394517502444900
+    },
+    {
+      "path": "experiments/map_factor_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6158,
+      "mtime_ns": 1792394517503444700
+    },
+    {
+      "path": "experiments/plateau_followup/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5179,
+      "mtime_ns": 1792394517504446300
+    },
+    {
+      "path": "experiments/plateau_followup/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 73,
+      "mtime_ns": 1792394517505446800
+    },
+    {
+      "path": "experiments/plateau_followup/config.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6729,
+      "mtime_ns": 1792394517506446500
+    },
+    {
+      "path": "experiments/plateau_followup/engine.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 17562,
+      "mtime_ns": 1792394517506446500
+    },
+    {
+      "path": "experiments/plateau_followup/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 17072,
+      "mtime_ns": 1792394517507445700
+    },
+    {
+      "path": "experiments/regularization/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2479,
+      "mtime_ns": 1792394517508446300
+    },
+    {
+      "path": "experiments/regularization/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 88,
+      "mtime_ns": 1792394517509447300
+    },
+    {
+      "path": "experiments/regularization/config.json",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5230,
+      "mtime_ns": 1792394517510448600
+    },
+    {
+      "path": "experiments/regularization/config.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 22612,
+      "mtime_ns": 1792394517510448600
+    },
+    {
+      "path": "experiments/regularization/manage.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 4097,
+      "mtime_ns": 1792394517511448300
+    },
+    {
+      "path": "experiments/regularization/report.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6982,
+      "mtime_ns": 1792394517512447200
+    },
+    {
+      "path": "experiments/regularization/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 37439,
+      "mtime_ns": 1792394517513448500
+    },
+    {
+      "path": "experiments/relation_grayscale_comparison.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1965,
+      "mtime_ns": 1792394517513448500
+    },
+    {
+      "path": "experiments/render_factor_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8265,
+      "mtime_ns": 1792394517514448800
+    },
+    {
+      "path": "experiments/render_only_followup/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1192,
+      "mtime_ns": 1792394517515448800
+    },
+    {
+      "path": "experiments/render_only_followup/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 70,
+      "mtime_ns": 1792394517516449200
+    },
+    {
+      "path": "experiments/render_only_followup/comparison.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8459,
+      "mtime_ns": 1792394517516449200
+    },
+    {
+      "path": "experiments/render_only_followup/real_gallery.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 10280,
+      "mtime_ns": 1792394517517450100
+    },
+    {
+      "path": "experiments/render_only_followup/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 14492,
+      "mtime_ns": 1792394517518449400
+    },
+    {
+      "path": "experiments/render_weight_followup/README.md",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1476,
+      "mtime_ns": 1792394517519450300
+    },
+    {
+      "path": "experiments/render_weight_followup/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 68,
+      "mtime_ns": 1792394517521002000
+    },
+    {
+      "path": "experiments/render_weight_followup/report.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 12256,
+      "mtime_ns": 1792394517521449900
+    },
+    {
+      "path": "experiments/render_weight_followup/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 11400,
+      "mtime_ns": 1792394517522449900
+    },
+    {
+      "path": "experiments/robustness_suite/__init__.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 80,
+      "mtime_ns": 1792394517523468500
+    },
+    {
+      "path": "experiments/robustness_suite/config.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6546,
+      "mtime_ns": 1792394517524455800
+    },
+    {
+      "path": "experiments/robustness_suite/controller.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 7763,
+      "mtime_ns": 1792394517524455800
+    },
+    {
+      "path": "experiments/robustness_suite/data.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 16405,
+      "mtime_ns": 1792394517525457200
+    },
+    {
+      "path": "experiments/robustness_suite/diagnostics.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 26658,
+      "mtime_ns": 1792394517526460900
+    },
+    {
+      "path": "experiments/robustness_suite/engine.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 19878,
+      "mtime_ns": 1792394517527461100
+    },
+    {
+      "path": "experiments/robustness_suite/run.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 17341,
+      "mtime_ns": 1792394517527461100
+    },
+    {
+      "path": "experiments/run_relation_grayscale_comparison.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 15023,
+      "mtime_ns": 1792394517528461400
+    },
+    {
+      "path": "live_training_plot.html",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 14438,
+      "mtime_ns": 1792394518348432400
+    },
+    {
+      "path": "live_training_plot.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 15102,
+      "mtime_ns": 1792394518348432400
+    },
+    {
+      "path": "model/author_real_capture_adapter.py",
+      "reason": "replaced core primitive",
+      "size": 14851,
+      "mtime_ns": 1792394518349432600
+    },
+    {
+      "path": "model/nfplight_matsynth_capture_model.py",
+      "reason": "replaced core primitive",
+      "size": 8089,
+      "mtime_ns": 1792394518350432700
+    },
+    {
+      "path": "model/nfplight_model.py",
+      "reason": "replaced core primitive",
+      "size": 15355,
+      "mtime_ns": 1792394518351432600
+    },
+    {
+      "path": "model/nfplight_real_model.py",
+      "reason": "replaced core primitive",
+      "size": 14975,
+      "mtime_ns": 1792394518351432600
+    },
+    {
+      "path": "model/normal_head.py",
+      "reason": "replaced core primitive",
+      "size": 3882,
+      "mtime_ns": 1792394518352433600
+    },
+    {
+      "path": "model/paper_equations.py",
+      "reason": "replaced core primitive",
+      "size": 3078,
+      "mtime_ns": 1792394518352433600
+    },
+    {
+      "path": "model/relation_geometry.py",
+      "reason": "replaced core primitive",
+      "size": 2528,
+      "mtime_ns": 1792394518353433800
+    },
+    {
+      "path": "network/base_net.py",
+      "reason": "replaced core primitive",
+      "size": 1459,
+      "mtime_ns": 1792394518354433800
+    },
+    {
+      "path": "network/nfplight_net.py",
+      "reason": "replaced core primitive",
+      "size": 8155,
+      "mtime_ns": 1792394518355433800
+    },
+    {
+      "path": "prepare_fabric_leather_subset.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8323,
+      "mtime_ns": 1792394518355433800
+    },
+    {
+      "path": "run_fabric_capture.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 63561,
+      "mtime_ns": 1792394518357434300
+    },
+    {
+      "path": "run_fabric_checkpoint_comparison.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 25351,
+      "mtime_ns": 1792394518358434800
+    },
+    {
+      "path": "tests/check_live_training_plot.cjs",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 4037,
+      "mtime_ns": 1792394518359435000
+    },
+    {
+      "path": "tests/test_author_real_capture.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 9519,
+      "mtime_ns": 1792394518359435000
+    },
+    {
+      "path": "tests/test_bottleneck_fc_experiment.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 23897,
+      "mtime_ns": 1792394518360435000
+    },
+    {
+      "path": "tests/test_bottleneck_fc_extension.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 18729,
+      "mtime_ns": 1792394518361435500
+    },
+    {
+      "path": "tests/test_capacity_crop_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2363,
+      "mtime_ns": 1792394518361435500
+    },
+    {
+      "path": "tests/test_capture_burst.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 14063,
+      "mtime_ns": 1792394518362435700
+    },
+    {
+      "path": "tests/test_capture_crop_only.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2619,
+      "mtime_ns": 1792394518362435700
+    },
+    {
+      "path": "tests/test_capture_memory_refresh.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 7168,
+      "mtime_ns": 1792394518363435800
+    },
+    {
+      "path": "tests/test_capture_model.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6047,
+      "mtime_ns": 1792394518364436000
+    },
+    {
+      "path": "tests/test_capture_processing.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 22548,
+      "mtime_ns": 1792394518364436000
+    },
+    {
+      "path": "tests/test_capture_report.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 53638,
+      "mtime_ns": 1792394518365436200
+    },
+    {
+      "path": "tests/test_difference_visualization.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5892,
+      "mtime_ns": 1792394518366436300
+    },
+    {
+      "path": "tests/test_fabric_leather_benchmark.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1026,
+      "mtime_ns": 1792394518366436300
+    },
+    {
+      "path": "tests/test_fabric_leather_launch.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1350,
+      "mtime_ns": 1792394518367436800
+    },
+    {
+      "path": "tests/test_fabric_leather_subset.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2507,
+      "mtime_ns": 1792394518367436800
+    },
+    {
+      "path": "tests/test_fabric_raw_core.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 4390,
+      "mtime_ns": 1792394518368437000
+    },
+    {
+      "path": "tests/test_fabric_training.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 34421,
+      "mtime_ns": 1792394518369437000
+    },
+    {
+      "path": "tests/test_full_dataset_readiness.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5837,
+      "mtime_ns": 1792394518369437000
+    },
+    {
+      "path": "tests/test_full_dataset_suite.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 6952,
+      "mtime_ns": 1792394518370438000
+    },
+    {
+      "path": "tests/test_gain9_contract.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5147,
+      "mtime_ns": 1792394518371437600
+    },
+    {
+      "path": "tests/test_intermediate_capacity.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3922,
+      "mtime_ns": 1792394518371437600
+    },
+    {
+      "path": "tests/test_live_training_plot.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8092,
+      "mtime_ns": 1792394518372437900
+    },
+    {
+      "path": "tests/test_map_factor_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1265,
+      "mtime_ns": 1792394518372437900
+    },
+    {
+      "path": "tests/test_ndrs_sum_objective.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5860,
+      "mtime_ns": 1792394518373437900
+    },
+    {
+      "path": "tests/test_normals.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 14668,
+      "mtime_ns": 1792394518373437900
+    },
+    {
+      "path": "tests/test_paper_equations.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5783,
+      "mtime_ns": 1792394518374438100
+    },
+    {
+      "path": "tests/test_plateau_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 17429,
+      "mtime_ns": 1792394518374438100
+    },
+    {
+      "path": "tests/test_pseudo_far.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3762,
+      "mtime_ns": 1792394518375438700
+    },
+    {
+      "path": "tests/test_real_spatial_attenuation.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 5146,
+      "mtime_ns": 1792394518376438500
+    },
+    {
+      "path": "tests/test_regularization_probe.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 24867,
+      "mtime_ns": 1792394518376438500
+    },
+    {
+      "path": "tests/test_relation_grayscale_comparison.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 1962,
+      "mtime_ns": 1792394518377438800
+    },
+    {
+      "path": "tests/test_render_factor_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3476,
+      "mtime_ns": 1792394518377438800
+    },
+    {
+      "path": "tests/test_render_only_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 8667,
+      "mtime_ns": 1792394518378439300
+    },
+    {
+      "path": "tests/test_render_weight_followup.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 3769,
+      "mtime_ns": 1792394518379439600
+    },
+    {
+      "path": "tests/test_robustness_suite_controller.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 2199,
+      "mtime_ns": 1792394518379439600
+    },
+    {
+      "path": "tests/test_robustness_suite_data.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 10409,
+      "mtime_ns": 1792394518380440100
+    },
+    {
+      "path": "tests/test_robustness_suite_diagnostics.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 14810,
+      "mtime_ns": 1792394518380440100
+    },
+    {
+      "path": "tests/test_robustness_suite_runner.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 12162,
+      "mtime_ns": 1792394518381439800
+    },
+    {
+      "path": "tests/test_spatial_relation_pipeline.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 7414,
+      "mtime_ns": 1792394518382440400
+    },
+    {
+      "path": "tests/test_training_policy_doctor.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 10201,
+      "mtime_ns": 1792394518382440400
+    },
+    {
+      "path": "train_fabric.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 114121,
+      "mtime_ns": 1792394518383440100
+    },
+    {
+      "path": "train_fabric_leather.py",
+      "reason": "retired experiment/report/history or superseded tests",
+      "size": 16537,
+      "mtime_ns": 1792394518384440500
+    },
+    {
+      "path": "utils/__init__.py",
+      "reason": "replaced core primitive",
+      "size": 57,
+      "mtime_ns": 1792394518385441500
+    },
+    {
+      "path": "utils/render_util.py",
+      "reason": "replaced core primitive",
+      "size": 3618,
+      "mtime_ns": 1792394518385441500
+    }
+  ],
+  "backup": "C:\\workspace\\NFPLight_code\\tmp\\clean_core_retired_sources.zip",
+  "backup_bytes_verified": true,
+  "original_checkout_unchanged": true,
+  "recursive_delete_used": false
+}

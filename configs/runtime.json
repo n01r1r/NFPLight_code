@@ -1,0 +1,31 @@
+{
+  "sample_count": 9056,
+  "batch_size": 4,
+  "adam_betas": [
+    0.9,
+    0.999
+  ],
+  "clip_norm": 1.0,
+  "sampler_seed_offset": 10000,
+  "d4_seed_offset": 20000,
+  "augmentation_seed_offset": 30000,
+  "noise_seed_offset": 40000,
+  "disk_reserve_bytes": 5368709120,
+  "crop_count": 16,
+  "cache_size": 4,
+  "validation_crops": [
+    0,
+    4,
+    8,
+    12
+  ],
+  "cpu_threads": 4,
+  "renderer": {
+    "size": 256,
+    "extent": 1.0,
+    "lamp_intensity": 16.0,
+    "epsilon": 1e-12,
+    "roughness_floor": 0.05
+  },
+  "ram_reserve_bytes": 4294967296
+}

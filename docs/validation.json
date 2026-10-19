@@ -1,0 +1,456 @@
+{
+  "passed": true,
+  "full_pytest": {
+    "passed": 54,
+    "seconds": 26.65
+  },
+  "production_syntax_files": 18,
+  "active_python_files": 26,
+  "active_python_lines": 4163,
+  "independent_runtime_imports": true,
+  "git_diff_check": "passed",
+  "capture": {
+    "legacy": {
+      "passed": true,
+      "groups": [
+        {
+          "group": "260818_174845_478",
+          "errors": [],
+          "eligible_count": 5,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            9,
+            15,
+            12,
+            12,
+            13
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_dng\\260818_174845_478\\preparation.json",
+            "size": 192598,
+            "mtime_ns": 1792397509650353400
+          },
+          "legacy_geometry_exact": true
+        },
+        {
+          "group": "260818_175005_078",
+          "errors": [],
+          "eligible_count": 10,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_dng\\260818_175005_078\\preparation.json",
+            "size": 209762,
+            "mtime_ns": 1792397708901437000
+          },
+          "legacy_geometry_exact": true
+        },
+        {
+          "group": "260923_141241_844",
+          "errors": [],
+          "eligible_count": 9,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            14,
+            16,
+            16,
+            16
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_dng\\260923_141241_844\\preparation.json",
+            "size": 207407,
+            "mtime_ns": 1792397915382247600
+          },
+          "legacy_geometry_exact": true
+        },
+        {
+          "group": "260923_161825_503",
+          "errors": [],
+          "eligible_count": 10,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_dng\\260923_161825_503\\preparation.json",
+            "size": 209884,
+            "mtime_ns": 1792398113381621900
+          },
+          "legacy_geometry_exact": true
+        },
+        {
+          "group": "260930_152732_008",
+          "errors": [],
+          "eligible_count": 9,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_dng\\260930_152732_008\\preparation.json",
+            "size": 178942,
+            "mtime_ns": 1792398317634580000
+          },
+          "legacy_geometry_exact": true
+        }
+      ],
+      "spatial_policy": "legacy_crop46",
+      "human_texture_and_target_review_performed": false,
+      "sha256_computed": false
+    },
+    "robust_default": {
+      "passed": true,
+      "groups": [
+        {
+          "group": "260818_174845_478",
+          "partial_tag_check": {
+            "remaining_tags": [
+              4,
+              8,
+              0
+            ],
+            "max_warp_pixel_error": 0.00018310546875,
+            "scope": "synthetic dropout/translation of real coordinates, not a new occlusion capture"
+          },
+          "errors": [],
+          "eligible_count": 5,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            9,
+            15,
+            12,
+            12,
+            13
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_robust_final\\260818_174845_478\\preparation.json",
+            "size": 195401,
+            "mtime_ns": 1792398820202753200
+          },
+          "legacy_geometry_exact": false
+        },
+        {
+          "group": "260818_175005_078",
+          "partial_tag_check": {
+            "remaining_tags": [
+              4,
+              0,
+              8
+            ],
+            "max_warp_pixel_error": 6.103515625e-05,
+            "scope": "synthetic dropout/translation of real coordinates, not a new occlusion capture"
+          },
+          "errors": [],
+          "eligible_count": 10,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            15,
+            16,
+            16
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [
+              15
+            ],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_robust_final\\260818_175005_078\\preparation.json",
+            "size": 213341,
+            "mtime_ns": 1792399017678426600
+          },
+          "legacy_geometry_exact": false
+        },
+        {
+          "group": "260923_141241_844",
+          "partial_tag_check": {
+            "remaining_tags": [
+              12,
+              8,
+              0
+            ],
+            "max_warp_pixel_error": 6.103515625e-05,
+            "scope": "synthetic dropout/translation of real coordinates, not a new occlusion capture"
+          },
+          "errors": [],
+          "eligible_count": 9,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            12,
+            14,
+            16,
+            14,
+            16
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [
+              0,
+              1,
+              2,
+              7
+            ],
+            [],
+            [],
+            [
+              3,
+              12
+            ],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_robust_final\\260923_141241_844\\preparation.json",
+            "size": 210876,
+            "mtime_ns": 1792399214470076900
+          },
+          "legacy_geometry_exact": false
+        },
+        {
+          "group": "260923_161825_503",
+          "partial_tag_check": {
+            "remaining_tags": [
+              12,
+              0,
+              8
+            ],
+            "max_warp_pixel_error": 0.00021362307597883046,
+            "scope": "synthetic dropout/translation of real coordinates, not a new occlusion capture"
+          },
+          "errors": [],
+          "eligible_count": 10,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16,
+            16
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_robust_final\\260923_161825_503\\preparation.json",
+            "size": 213638,
+            "mtime_ns": 1792399417141987000
+          },
+          "legacy_geometry_exact": false
+        },
+        {
+          "group": "260930_152732_008",
+          "partial_tag_check": {
+            "remaining_tags": [
+              1,
+              4,
+              11
+            ],
+            "max_warp_pixel_error": 6.256823689909652e-05,
+            "scope": "synthetic dropout/translation of real coordinates, not a new occlusion capture"
+          },
+          "errors": [],
+          "eligible_count": 10,
+          "frame00_usable": true,
+          "used_tag_counts": [
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            11,
+            9,
+            11,
+            10
+          ],
+          "excluded_tags": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            [
+              1,
+              2
+            ],
+            [],
+            [
+              2
+            ]
+          ],
+          "preparation": {
+            "path": "C:\\workspace\\NFPLight_code\\tmp\\clean_audit_robust_final\\260930_152732_008\\preparation.json",
+            "size": 180139,
+            "mtime_ns": 1792399619450490900
+          },
+          "legacy_geometry_exact": false
+        }
+      ],
+      "spatial_policy": "robust_target",
+      "human_texture_and_target_review_performed": false,
+      "sha256_computed": false
+    }
+  },
+  "gpu_research_training_started": false,
+  "production_batch_gpu_next_update_tested": false,
+  "human_target_texture_review_performed": false,
+  "sha256_computed": false,
+  "formatter_run": false,
+  "automatic_indexing_run": false
+}

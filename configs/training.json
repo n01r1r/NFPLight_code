@@ -1,0 +1,101 @@
+{
+  "policy": {
+    "arm": "baseline7m_p01",
+    "seed": 19,
+    "parameters": 7609834,
+    "middle_blocks": 4,
+    "dropout_probability": 0.1,
+    "optimizer": "Adam",
+    "weight_decay": 0.0,
+    "ema_decay": null,
+    "map_cap": 400000,
+    "render_cap": 100000,
+    "evaluation_interval": 1000,
+    "checkpoint_interval": 1000,
+    "floor_observations": 20,
+    "map_lr": 0.0005,
+    "map_min_lr": 1e-05,
+    "render_lr": 0.0001,
+    "render_min_lr": 1e-06,
+    "factor": 0.5,
+    "patience": 5,
+    "threshold": 0.005,
+    "threshold_mode": "rel",
+    "cooldown": 2,
+    "eps": 1e-08,
+    "mode": "min",
+    "render_ndr_guard": 1.02,
+    "map_monitor": "heldout.ndrs_sum",
+    "render_monitor": "heldout.render_l1",
+    "cap_action": "pause phase; never force transition or claim convergence"
+  },
+  "scientific_settings": {
+    "rendering": {
+      "relation_version": "spatial_inverse_square_v1",
+      "precision": "float32",
+      "amp": false,
+      "tf32": false,
+      "feature_version": "raw_calibrated_gain9_v3",
+      "near": 4.0,
+      "far": 12.0,
+      "gain": 9.0,
+      "f0": 0.04,
+      "training_lights": {
+        "radius": 4.0,
+        "theta_degrees": [
+          5,
+          10,
+          20,
+          30,
+          45
+        ],
+        "phi_degrees": [
+          0,
+          45,
+          90,
+          135,
+          180,
+          225,
+          270,
+          315
+        ],
+        "view": [
+          0.0,
+          0.0,
+          2.75
+        ]
+      },
+      "novel_lights": {
+        "radius": 4.0,
+        "theta_degrees": [
+          12,
+          27,
+          40
+        ],
+        "phi_degrees": [
+          22.5,
+          112.5,
+          202.5,
+          292.5
+        ],
+        "view": [
+          0.0,
+          0.0,
+          2.75
+        ]
+      }
+    },
+    "loss": {
+      "normal": "unit XYZ L1",
+      "map_terms": [
+        "N",
+        "D",
+        "R",
+        "S"
+      ],
+      "map_aggregation": "sum",
+      "specular_target": 0.04,
+      "render_weight": 1.0
+    }
+  }
+}

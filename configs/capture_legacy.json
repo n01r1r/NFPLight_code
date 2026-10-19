@@ -1,0 +1,11 @@
+{
+  "warp_size": 512,
+  "crop_margin": 46,
+  "output_size": 256,
+  "max_marker_rms_px": 1.0,
+  "burst_count": 5,
+  "photometry": "both",
+  "inset": 0.0,
+  "sample_side_cm": 5.0,
+  "spatial_policy": "legacy_crop46"
+}

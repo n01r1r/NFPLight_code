@@ -1,0 +1,40 @@
+{
+  "network": {
+    "dim": 32,
+    "encoder_depths": [
+      2,
+      2,
+      4
+    ],
+    "middle_depth": 4,
+    "decoder_depths": [
+      2,
+      2,
+      2
+    ],
+    "appearance_channels": 18,
+    "dropout": 0.1,
+    "norm_eps": 1e-06
+  },
+  "features": {
+    "size": 256,
+    "channels": 21,
+    "near": 4.0,
+    "far": 12.0,
+    "training_gain": 9.0,
+    "geometry_dtype": "float32",
+    "relation": "legacy_no_spatial",
+    "normalization": "sample",
+    "gain_patch": [
+      118,
+      138
+    ],
+    "epsilon": 1e-05,
+    "saturation": 0.95,
+    "log_epsilon": 0.01,
+    "log_form": "scalar"
+  },
+  "decoder": "unit_xyz",
+  "feature_version": "raw_calibrated_gain9_v3",
+  "profile": "7m_original"
+}

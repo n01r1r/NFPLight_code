@@ -1,0 +1,170 @@
+{
+  "passed": true,
+  "cpu": {
+    "passed": true,
+    "device": "cpu",
+    "torch": "2.5.1+cu121",
+    "cases": [
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\weight_handoff_20261019\\weights\\01_nfplight_7m_relmap-original_render-w1_initlr1e-4_step32k.pt",
+          "size": 31193838,
+          "mtime_ns": 1791763462493849000
+        },
+        "profile": "7m_original",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\weight_handoff_20261019\\weights\\02_nfplight_7m_relmap-spatial_render-w1_initlr1e-4_step49k.pt",
+          "size": 31194158,
+          "mtime_ns": 1792366259548680500
+        },
+        "profile": "7m_spatial",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\weight_handoff_20261019\\weights\\03_nfplight_7m_relmap-spatial_C_render-w10_initlr1e-5_step10k.pt",
+          "size": 31068974,
+          "mtime_ns": 1792389888790397800
+        },
+        "profile": "7m_c",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\last.pt",
+          "size": 154422587,
+          "mtime_ns": 1792397166833437500
+        },
+        "profile": "7m_c",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "D:\\NFPLight_runs\\NFPLight_code\\checkpoints\\net_g_real.pth",
+          "size": 256897950,
+          "mtime_ns": 1765555082000000000
+        },
+        "profile": "author_real",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "D:\\NFPLight_runs\\NFPLight_code\\checkpoints\\net_g_syn.pth",
+          "size": 256908190,
+          "mtime_ns": 1765556573000000000
+        },
+        "profile": "author_syn",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      }
+    ],
+    "renderers_exact": true,
+    "legacy_engine_next_update_exact": true,
+    "production_gpu_continuation_tested": false,
+    "sha256_computed": false
+  },
+  "cuda": {
+    "passed": true,
+    "device": "cuda",
+    "engine_fixture_device": "cpu",
+    "torch": "2.5.1+cu121",
+    "cases": [
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\weight_handoff_20261019\\weights\\01_nfplight_7m_relmap-original_render-w1_initlr1e-4_step32k.pt",
+          "size": 31193838,
+          "mtime_ns": 1791763462493849000
+        },
+        "profile": "7m_original",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\weight_handoff_20261019\\weights\\02_nfplight_7m_relmap-spatial_render-w1_initlr1e-4_step49k.pt",
+          "size": 31194158,
+          "mtime_ns": 1792366259548680500
+        },
+        "profile": "7m_spatial",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\weight_handoff_20261019\\weights\\03_nfplight_7m_relmap-spatial_C_render-w10_initlr1e-5_step10k.pt",
+          "size": 31068974,
+          "mtime_ns": 1792389888790397800
+        },
+        "profile": "7m_c",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\last.pt",
+          "size": 154422587,
+          "mtime_ns": 1792397166833437500
+        },
+        "profile": "7m_c",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "D:\\NFPLight_runs\\NFPLight_code\\checkpoints\\net_g_real.pth",
+          "size": 256897950,
+          "mtime_ns": 1765555082000000000
+        },
+        "profile": "author_real",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      },
+      {
+        "checkpoint": {
+          "path": "D:\\NFPLight_runs\\NFPLight_code\\checkpoints\\net_g_syn.pth",
+          "size": 256908190,
+          "mtime_ns": 1765556573000000000
+        },
+        "profile": "author_syn",
+        "parameter_order_exact": true,
+        "strict_load": true,
+        "features_exact": true,
+        "prediction_exact": true
+      }
+    ],
+    "renderers_exact": true,
+    "legacy_engine_next_update_exact": true,
+    "production_gpu_continuation_tested": false,
+    "sha256_computed": false
+  }
+}
