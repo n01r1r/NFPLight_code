@@ -1,40 +1,45 @@
-# C best64k 최종 호환성과 main 전환
+# C best64k 검증과 clean main 전환
 
-2026-10-20. 기존 C 연장은 render65k에서 운영 종료했고 validation 선정 best는64k다. clean core `cc4b0f0`와 기존 구현을 같은 환경에서 비교했다.
+2026-10-20 기준 작업 폴더는 **C:/workspace/NFPLight_code**, branch는 **main**이다. Clean core를 승격한 뒤 이 경로에서도 실제 C best64k 추론을 확인했다. 별도 clean worktree는 detached 상태로 보존했다.
 
-## 실제 검사
+## 최종 weight 호환성
 
-- `best_render.pt`, `selected.pt`, `net_g_selected_fp32.pth`의 모든 weight tensor 및 key가 일치하고 strict load·parameter 등록 순서 검증을 통과했다.
-- CPU와 RTX3090 CUDA 각각에서 결정적 capture/synthetic 입력2개와 기존 실측5묶음, 총14case의 특징·raw 예측·unit XYZ decoded N/D/R/S가 비트 일치했다. 최대 절대 오차0이다.
-- 실제 실측5묶음은 기존 검토 기록과 fresh registration이 정확히 같을 때만 재사용했다. both·author_patch20·기존 crop46/420·동일 색변환과5평균/첫프레임 gate를 유지했다.
-- 공개 `nfplight.cli.infer` 진입점으로 실제 입력 한 묶음을 저장/추론하고 같은 decoded 출력임을 확인했다.
-- Python3.11.0rc2/PyTorch2.5.1+cu121/CUDA12.1, FP32, AMP/TF32 off. [검증 JSON](C_BEST64K_VERIFICATION.json).
-- 현재 clean core 코드가 이전 전체54tests 검사 때와 같아 전체 테스트를 반복하지 않았다. 이번 검사는 최종64k weight와 입력/추론 경로에 집중했다.
+`best_render.pt`, `selected.pt`, `net_g_selected_fp32.pth`의 모든 weight tensor와 key가 일치했다. Strict load와 parameter 등록 순서도 통과했다. CPU와 RTX3090 CUDA 각각에서 결정적 입력2개·실측5묶음, 총14case의 특징·raw·decoded 출력이 기존 코드와 비트 일치했고 최대 절대 오차는0이었다. 공개 CLI의 실제 입력 저장·추론도 통과했다.
 
-CPU와 CUDA 사이의 출력 비트 일치는 주장하지 않는다. 각 장치에서 구/신 코드끼리 비교했다. 새 DNG 기본 robust_target crop은 기존 crop과 입력 영역이 달라 이 동일성 검증에 포함하지 않았다. 실제 연구 학습·optimizer update는 실행하지 않았고 원본 weight와 보고를 보존했다. SHA-256은 실행하지 않았다.
+환경은 Python3.11.0rc2, PyTorch2.5.1+cu121, CUDA12.1, FP32, AMP/TF32 off였다. [원본 검증 JSON](C_BEST64K_VERIFICATION.json)은 변경하지 않았다. CPU와 CUDA 사이의 비트 일치나 새 robust_target 영역과 과거 crop46/420의 동일성을 주장하지 않는다.
 
-## 사용할 코드와 weight
+현재 작업 폴더에서 전체54tests를 다시 통과했고, 기존 검토 입력과 best64k를 공개 CLI로 추론해 이전 CLI의 특징·raw·decoded 출력과 비교했다. 이번 전환의 [검증 기록](../artifacts/clean_main_cleanup_20261020/verification.json)을 따른다. 실제 연구 학습이나 optimizer update는 실행하지 않았다.
 
-현재 `main`은 이 clean core다. clean 작업 폴더는 `C:/Users/hdy/.codex/worktrees/clean-core-rewrite/NFPLight_code`다. 기존 `C:/workspace/NFPLight_code`는 미커밋 연구 코드·데이터·산출물을 보존한 checkout이며 아직 codex/fork-portability에 있다.
+## 정리한 branch
 
-C 추론에는 `configs/7m_c.json`을 명시한다. 최종 weight는 `C:/workspace/NFPLight_code/artifacts/C_convergence_followup_20261019/run/net_g_selected_fp32.pth` 또는 같은 폴더 best_render.pt다. 입력은 검토 완료 FP32 pair만 허용한다. 기본 저자 inference profile을 C로 자동 교체하지 않았다.
+|대상|결과|
+|---|---|
+|로컬 main / origin/main|현재 clean core와 최신 문서의 기준|
+|로컬 codex/clean-core-rewrite|main의 선조임을 확인하고 삭제|
+|로컬 codex/fork-portability|최신 미커밋 변경을 보존하고 선조 관계 확인 후 삭제|
+|로컬 claude/reverent-bell-774205|main의 선조임을 확인하고 삭제|
+|origin의 clean-core-rewrite / fork-portability|두 원격 branch 삭제|
+|기존 detached worktree|파일을 유지; 디렉터리 삭제하지 않음|
+
+GitHub 기본 branch는 main이다. `upstream` 원본 저장소는 출처로 유지한다. Git metadata는 기존 `D:/NFPLight_runs/NFPLight_code/.git`에 있고 C 경로의 `.git` 파일과 worktree 설정으로 연결된다. D 저장소와 junction 외부 대상을 이동하거나 삭제하지 않았다. 따라서 C 폴더만 단독 복사하면 Git 저장소 전체를 복사한 것이 아니다.
+
+## 보존과 복구
+
+현재 archive는 [clean_main_cleanup_20261020](../artifacts/clean_main_cleanup_20261020/RESULTS_KO.md)다.
+
+- `repository_with_latest_stash.bundle`: 모든 refs와 최신 stash를 포함한다. `git bundle verify`를 통과했다.
+- `latest_worktree.zip`: 전환 직전 수정4개·미추적9개, 총13개 파일의 원본 byte를 보존했다. Binary patch와 경로 목록도 함께 있다.
+- Stash commit `6a47a414cc0f27458fb3e4fdb990f2a5166c7f81`을 보존했다. 정리된 main에 바로 apply하지 않는다.
+- `docs_before.zip`: 이번 문서 정리 전 README와 Markdown 문서3개의 원본이다. 과거 수치 JSON·HTML·보고서 원본은 그대로 유지했다.
+- 데이터·weight·보고서 등33,979개 기존 로컬 항목의 경로·크기·mtime와 junction target을 전후 비교했다. 암호학적 내용 검증은 수행하지 않았다.
+
+복구는 **새 폴더**에서 수행한다. Bundle을 clone한 뒤 stash의 첫 부모를 기준으로 별도 복구 branch를 만들고 stash commit을 적용한다. 충돌 시 ZIP 원본을 사용한다. 예:
 
 ```powershell
-python -m nfplight infer --config configs/7m_c.json --checkpoint C:/workspace/NFPLight_code/artifacts/C_convergence_followup_20261019/run/net_g_selected_fp32.pth --input <reviewed_pair.pt> --out <new_prediction.pt> --device cuda
+git clone C:/workspace/NFPLight_code/artifacts/clean_main_cleanup_20261020/repository_with_latest_stash.bundle <새복구폴더>
+git -C <새복구폴더> fetch C:/workspace/NFPLight_code/artifacts/clean_main_cleanup_20261020/repository_with_latest_stash.bundle refs/stash:refs/archive/legacy-stash
+git -C <새복구폴더> switch -c codex/restore-legacy '6a47a414cc0f27458fb3e4fdb990f2a5166c7f81^1'
+git -C <새복구폴더> stash apply --index 6a47a414cc0f27458fb3e4fdb990f2a5166c7f81
 ```
 
-원본 전체 결과·검증 script/log·실제 준비 입력은 `C:/workspace/NFPLight_code/artifacts/C_best64k_clean_main_20261020`에 있다. 최종 모델 비교 HTML은 `C:/workspace/NFPLight_code/artifacts/relmap_three_way_real_20261019/index.html`이다.
-
-## Archive와 다른 branch 정리 조건
-
-같은 audit 폴더의 `archive/repository.bundle`은 모든133개 refs와 완전한 Git history를 담고 `git bundle verify`를 통과했다. refs-before.txt/worktrees-before.txt가 전환 전 위치를 기록한다. 미커밋 tracked4개는 binary patch와 원본 byte ZIP, untracked9개는 ZIP으로 보존했고 byte 검사를 통과했다. ignored 데이터·checkpoint·results·artifacts는 bundle/ZIP에 포함하지 않고 원래 위치에 보존한다. 이 보존 폴더를 지우면 안 된다.
-
-|branch|정리 상태|
-|---|---|
-|codex/clean-core-rewrite|main이 동일 코어를 포함하고 worktree는 main으로 전환했다. 기존 ref는 bundle에 보존됐으며 branch ref 정리 가능|
-|claude/reverent-bell-774205|main의 선조이며 bundle에 보존. branch ref 정리 가능; detached worktree의 파일 삭제는 별도|
-|codex/fork-portability|커밋은 main의 선조이고 bundle에 보존. 현재 checkout이 dirty이므로 로컬 branch/worktree 삭제 보류. 원격 ref 정리는 가능하지만 이번에 삭제하지 않음|
-
-다른 branch ref는 실제 삭제하지 않았다. 복구 자료와 명확한 경계를 남겨 후속 delete/archive가 가능하도록 했다. `.git`, checkpoints/results, dataset junction 외부 대상과 기존 산출물은 이동·삭제하지 않는다.
-
-복구는 기존 checkout을 덮어쓰지 않고 새 폴더에서 bundle을 clone한 뒤 codex/fork-portability를 checkout하고 staged.patch/unstaged.patch와 untracked.zip을 적용한다. 정확한 수정 파일 원본은 modified_worktree_bytes.zip에도 있다. Git bundle 검증은 SHA-256 검증이 아니다.
+Bundle에는 ignored 데이터·weight·보고서가 포함되지 않는다. 이들은 기존 C 경로와 D junction 대상에 보존돼 있다. 초기 전환의 [별도 archive](../artifacts/C_best64k_clean_main_20261020/archive/manifest.json)도 유지했다. 과거 문서의 “C 경로는 아직 legacy branch”라는 내용은 당시 기록이며 이 문서로 대체한다.
