@@ -2,7 +2,7 @@
 
 ## 확정 범위
 
-- 브랜치: codex/clean-core-rewrite. 별도 worktree에서 작업하며 원래 작업 폴더와 미커밋 변경은 보존한다.
+- 현재 브랜치: main. codex/clean-core-rewrite를 검증 후 승격했다. [최종 검증·archive와 전환](C_BEST64K_MAIN_HANDOFF.md). 원래 작업 폴더와 미커밋 변경은 보존한다.
 - 모델·입력 처리·추론·학습 코어를 재작성한다. 의미별 모듈과 최소 깊이의 폴더를 사용한다.
 - 새 API·CLI로 통합한다. 기존 import·CLI 호환 facade는 남기지 않고 전환 방법을 문서화한다.
 - 과거 실험·보고서 생성 코드는 Git 이력과 원래 작업 폴더에 보존하고 새 브랜치에서 제거한다. 실제 데이터·weight·결과 및 junction 외부 대상은 삭제하거나 이동하지 않는다.

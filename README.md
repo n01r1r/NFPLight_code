@@ -125,3 +125,7 @@ python tests/verify_capture_compatibility.py --source-root <기존data> --prepar
 
 검증기는 과거 파일 경로를 비교 기준으로만 사용하며 코어의 실행 의존성이 아니다.
 [확정 계약](docs/CLEAN_CORE_REWRITE.md) · [감사와 검증](docs/AUDIT.md) · [weight 비교](docs/compatibility.json) · [학습 수치 비교](docs/training_compatibility.json).
+
+## 현재 main과 C 최종 weight
+
+C 연장 best64k의 CPU/CUDA FP32 호환성을 확인하고 clean core를 main으로 승격했다. [검증 결과·C 추론·기존 branch archive와 정리 조건](docs/C_BEST64K_MAIN_HANDOFF.md)을 따른다.

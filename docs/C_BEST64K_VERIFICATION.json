@@ -1,0 +1,214 @@
+{
+  "passed": true,
+  "clean_branch_commit": "cc4b0f068291e4f5c965c4c669ef37a4543886e3",
+  "selection_step": 64000,
+  "end_step": 65000,
+  "checkpoint_identities": [
+    {
+      "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\best_render.pt",
+      "size": 31072430,
+      "mtime_ns": 1792427906105074700
+    },
+    {
+      "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\selected.pt",
+      "size": 31072494,
+      "mtime_ns": 1792427906185092700
+    },
+    {
+      "path": "C:\\workspace\\NFPLight_code\\artifacts\\C_convergence_followup_20261019\\run\\net_g_selected_fp32.pth",
+      "size": 30648494,
+      "mtime_ns": 1792427907124304300
+    }
+  ],
+  "strict_load_and_export_weights_exact": true,
+  "parameter_order_exact": true,
+  "python": "3.11.0rc2",
+  "torch": "2.5.1+cu121",
+  "cuda": "12.1",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "amp": false,
+  "tf32": false,
+  "cases": [
+    {
+      "device": "cpu",
+      "input": "deterministic_capture",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cpu",
+      "input": "deterministic_synthetic",
+      "purpose": "synthetic",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cpu",
+      "input": "260818_174845_478",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cpu",
+      "input": "260818_175005_078",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cpu",
+      "input": "260923_141241_844",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cpu",
+      "input": "260923_161825_503",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cpu",
+      "input": "260930_152732_008",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "deterministic_capture",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "deterministic_synthetic",
+      "purpose": "synthetic",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "260818_174845_478",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "260818_175005_078",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "260923_141241_844",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "260923_161825_503",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    },
+    {
+      "device": "cuda",
+      "input": "260930_152732_008",
+      "purpose": "capture",
+      "features_exact": true,
+      "raw_exact": true,
+      "decoded_exact": true,
+      "max_absolute_error": 0.0
+    }
+  ],
+  "capture_inputs": [
+    {
+      "group": "260818_174845_478",
+      "selected_indices": [
+        0
+      ],
+      "registration_exact": true,
+      "prior_review": "C:\\workspace\\NFPLight_code\\artifacts\\real_patch20_registration_20261013\\260818_174845_478\\root_review.json"
+    },
+    {
+      "group": "260818_175005_078",
+      "selected_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "registration_exact": true,
+      "prior_review": "C:\\workspace\\NFPLight_code\\artifacts\\real_patch20_registration_20261013\\260818_175005_078\\root_review.json"
+    },
+    {
+      "group": "260923_141241_844",
+      "selected_indices": [
+        0
+      ],
+      "registration_exact": true,
+      "prior_review": "C:\\workspace\\NFPLight_code\\artifacts\\real_patch20_registration_20261013\\260923_141241_844\\root_review.json"
+    },
+    {
+      "group": "260923_161825_503",
+      "selected_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "registration_exact": true,
+      "prior_review": "C:\\workspace\\NFPLight_code\\artifacts\\real_patch20_registration_20261013\\260923_161825_503\\root_review.json"
+    },
+    {
+      "group": "260930_152732_008",
+      "selected_indices": [
+        0
+      ],
+      "registration_exact": true,
+      "prior_review": "C:\\workspace\\NFPLight_code\\artifacts\\real_patch20_registration_20261013\\260930_152732_008\\root_review.json"
+    }
+  ],
+  "public_infer_entrypoint_exact": true,
+  "checkpoints_unchanged": true,
+  "sha256_computed": false,
+  "training_started": false,
+  "scope": "same-device legacy/new FP32 equality; CPU/CUDA cross-device equality not claimed; preserved legacy crop, not new robust_target"
+}
