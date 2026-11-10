@@ -219,3 +219,23 @@ def test_loss_plot_is_one_by_two_with_log_axes_and_single_update_visible():
     assert figure.axes[0].lines[0].get_marker() == '.'
     plt.close(figure)
     assert not torch.cuda.is_initialized()
+
+
+def test_last_and_selected_best_are_preserved_without_replacing_an_unimproved_best(tmp_path):
+    import torch
+    from train_colab import save_cpu_checkpoint
+    root, backup = tmp_path / 'run', tmp_path / 'drive'
+    backup.mkdir()
+    selected = {'stage':'map', 'step':1, 'total_step':1, 'metric':.5,
+                'net_g':{'fixture':torch.tensor([1.], dtype=torch.float32)}}
+    payload = {'state':{'total_step':1, 'best_map':selected, 'best_render':None},
+               'clean_profile':{}, 'identity':{}, 'relation_version':'fixture', 'optimizer':{}, 'rng':{}}
+    save_cpu_checkpoint(root / 'last.pt', payload, reserve_bytes=0, backup_dir=backup)
+    assert torch.load(backup / 'last.pt', weights_only=True)['state']['total_step'] == 1
+    best = torch.load(backup / 'best.pt', weights_only=True)
+    assert best['selected']['metric'] == .5 and 'optimizer' not in best and 'rng' not in best
+    timestamp = (backup / 'best.pt').stat().st_mtime_ns
+    payload['state']['total_step'] = 2
+    save_cpu_checkpoint(root / 'last.pt', payload, reserve_bytes=0, backup_dir=backup)
+    assert (backup / 'best.pt').stat().st_mtime_ns == timestamp
+    assert torch.load(backup / 'last.pt', weights_only=True)['state']['total_step'] == 2

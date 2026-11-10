@@ -9,6 +9,8 @@ Setup → Drive data → Train → Live view. 각 notebook은 모델 하나로 �
 
 `DRIVE_FOLDER`와 새 `RUN_ROOT`를 지정하고 Train 셀을 실행한다. Train step과 **1×2 train/validation loss(log Y축)**를 표시한다. Diagram·모델 소스 출력·HTML·iframe은 없다.
 
+각 checkpoint 저장 후 `MyDrive/NFPLight_runs/<run 이름>/`에 **last.pt(전체 재개 상태)**와 **best.pt(선정 모델 weight)**를 보존한다. 기존 backup 폴더는 덮어쓰지 않는다.
+
 [Colab details](docs/COLAB.md) · [DNG / inference](docs/USAGE_KO.md) · [Numerical contract](docs/CLEAN_CORE_REWRITE.md)
 
 데이터·연구 weight·checkpoint는 배포하지 않는다. Baseline은 무양자화 원 NFPLight를 MatSynth fabric/leather subset으로 학습한 weight만 뜻한다. 저자 원본 inference weight와 과거 양자화 실험을 baseline으로 취급하지 않는다.

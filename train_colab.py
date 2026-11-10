@@ -3,6 +3,8 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+from functools import partial
+import shutil
 import subprocess
 import sys
 import time
@@ -21,7 +23,7 @@ def require(value, message):
         raise ValueError(message)
 
 
-def save_cpu_checkpoint(path, payload, *, reserve_bytes):
+def save_cpu_checkpoint(path, payload, *, reserve_bytes, backup_dir = None, progress = None):
     # snapshot() already owns a detached CPU tree; preserve the verified writer behavior.
     def cpu_only(value):
         if torch.is_tensor(value):
@@ -33,7 +35,44 @@ def save_cpu_checkpoint(path, payload, *, reserve_bytes):
             for item in value:
                 cpu_only(item)
     cpu_only(payload)
+    if progress:
+        progress('saving checkpoint')
     atomic_write(path, lambda stream: torch.save(payload, stream), reserve_bytes = reserve_bytes)
+    path = Path(path)
+    if path.name != 'last.pt':
+        return
+    selected = payload['state'].get('best_render') or payload['state'].get('best_map')
+    best_path, info_path = path.parent / 'best.pt', path.parent / 'best_info.json'
+    if selected is not None:
+        info = {key:selected[key] for key in ('stage', 'step', 'total_step', 'metric')}
+        previous = json.loads(info_path.read_text(encoding = 'utf-8')) if info_path.exists() else None
+        if info != previous or not best_path.exists():
+            best = {'schema':'nfplight.best.v1', 'net_g':selected['net_g'], 'selected':info,
+                    'clean_profile':payload['clean_profile'], 'identity':payload['identity'],
+                    'relation_version':payload['relation_version']}
+            atomic_write(best_path, lambda stream: torch.save(best, stream), reserve_bytes = reserve_bytes)
+            write_json(info_path, info)
+    if backup_dir is None:
+        return
+    if progress:
+        progress('Drive checkpoint backup')
+    def copy_to_drive(source, destination):
+        def copy(stream):
+            with source.open('rb') as original:
+                shutil.copyfileobj(original, stream, length = 4 * 1024 * 1024)
+        atomic_write(destination, copy)
+    try:
+        remote_info = backup_dir / 'best_info.json'
+        previous = json.loads(remote_info.read_text(encoding = 'utf-8')) if remote_info.exists() else None
+        if selected is not None and (info != previous or not (backup_dir / 'best.pt').exists()):
+            copy_to_drive(best_path, backup_dir / 'best.pt')
+            write_json(remote_info, info)
+        copy_to_drive(path, backup_dir / 'last.pt')
+        write_json(path.parent / 'backup_status.json', {'ok':True, 'directory':str(backup_dir),
+            'total_step':payload['state']['total_step'], 'updated_at':time.time()})
+    except (OSError, ValueError) as error:
+        write_json(path.parent / 'backup_status.json', {'ok':False, 'directory':str(backup_dir),
+            'attempted_total_step':payload['state']['total_step'], 'error':str(error), 'updated_at':time.time()})
 
 
 def main(argv = None):
@@ -44,6 +83,7 @@ def main(argv = None):
     parser.add_argument('--training-config', default = 'configs/training_noquant.json')
     parser.add_argument('--runtime', default = 'configs/runtime_accum4.json')
     parser.add_argument('--resume')
+    parser.add_argument('--checkpoint-dir')
     args = parser.parse_args(argv)
     root, manifest = map(relative_path, (args.run_root, args.manifest))
     if args.resume:
@@ -60,6 +100,11 @@ def main(argv = None):
                  'disk_free_bytes': psutil.disk_usage('.').free}
     require(free >= 12 * 2**30 and admission['host_available_bytes'] >= 8 * 2**30
             and admission['disk_free_bytes'] >= 12 * 2**30, f'resource admission failed: {admission}')
+    backup_dir = Path(args.checkpoint_dir).resolve() if args.checkpoint_dir else None
+    if backup_dir is not None:
+        require(not backup_dir.is_relative_to(root.resolve()), 'Drive backup must be outside the local run root')
+        require(not backup_dir.exists(), 'use a new checkpoint backup folder; existing folders are preserved')
+        backup_dir.mkdir(parents = True)
     root.mkdir(parents = True)
     write_json(root / 'admission.json', admission)
     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text = True).strip()
@@ -106,7 +151,7 @@ def main(argv = None):
         return row
     cli.build_model = cuda_build
     training.Trainer.step = timed_step
-    training.save_checkpoint = save_cpu_checkpoint
+    training.save_checkpoint = partial(save_cpu_checkpoint, backup_dir = backup_dir, progress = progress)
     sys.argv = ['nfplight', 'train', '--config', args.config,
         '--training-config', args.training_config, '--runtime', args.runtime,
         '--manifest', str(manifest), '--device', 'cuda', '--out', str(root / 'run')]

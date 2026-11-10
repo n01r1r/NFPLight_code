@@ -186,6 +186,7 @@ class TrainingLog:
                     chosen.add(start + max(range(len(block)), key = lambda i: block[i][column]))
             train[key] = [points[index] for index in sorted(chosen)]
         return {'activity':read(self.root / 'activity.json', {}),
+                'backup':read(self.root / 'run/backup_status.json', None),
                 'process_started_at':process.get('create_time', time.time()),
                 'render_weight':execution.get('scientific_settings', {}).get('loss', {}).get('render_weight', 1.),
                 'status':status, 'latest':self.latest, 'train':train, 'validation':self.validation,
@@ -226,7 +227,7 @@ def plot_training(snapshot):
     return fig
 
 
-def launch_training(config, manifest, run_root, resume = None):
+def launch_training(config, manifest, run_root, resume = None, checkpoint_dir = None):
     import subprocess
     import psutil
     config, manifest, run_root = map(relative_path, (config, manifest, run_root))
@@ -247,6 +248,8 @@ def launch_training(config, manifest, run_root, resume = None):
                '--manifest', str(manifest), '--run-root', str(run_root)]
     if resume is not None:
         command.extend(['--resume', str(resume)])
+    if checkpoint_dir is not None:
+        command.extend(['--checkpoint-dir', str(checkpoint_dir)])
     stdout, stderr = Path('work') / (run_root.name + '.stdout.log'), Path('work') / (run_root.name + '.stderr.log')
     with stdout.open('xb') as out, stderr.open('xb') as err:
         process = subprocess.Popen(command, stdout = out, stderr = err)
@@ -302,6 +305,10 @@ def monitor(run_root, process = None, *, refresh_seconds = 5, plots = True, foll
                 print(f"Train loss: {latest['loss']:.6g} | lr: {latest.get('lr', 'unrecorded')}")
             if activity.get('updated_at'):
                 print(f"Last progress: {max(0., time.time() - activity['updated_at']):.0f}s ago")
+            backup = snapshot['backup']
+            if backup:
+                print(f"Drive backup step {backup['total_step']} | {backup['directory']}" if backup['ok']
+                      else f"Drive backup failed: {backup['error']} | local checkpoint preserved")
             if plots:
                 import matplotlib.pyplot as plt
                 figure = plot_training(snapshot)

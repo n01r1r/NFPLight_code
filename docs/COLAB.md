@@ -17,6 +17,10 @@ Figure는 Train/Validation loss의1×2이며 Y축은 log다. Train은 실제 obj
 
 실행 source와 numerical config는 공통 코어에 유지하고 notebook에는 복제하지 않는다. Loss·모델 연산·Adam·scheduler·sampling·RNG·checkpoint 계약은 유지하며 `pipeline.evaluate`에 optional progress callback만 추가했다. 진행 기록은 runtime 로컬 `activity.json`에 최대 약1초 간격으로 쓴다. 기존 로컬 frozen 실행 source는 변경하지 않았다.
 
-출력/checkpoint는 `RUN_ROOT`의 runtime 로컬 파일이다. Drive 자동 백업은 아직 포함하지 않는다. Full `run/last.pt`의 exact resume는 모델/설정/Adam/scheduler/전체 RNG, Python/PyTorch/CUDA/GPU, 데이터 절대 경로·size·mtime가 같아야 한다. Colab reset·재업로드·다른 GPU·Windows checkpoint 이관은 거부될 수 있다. 마지막 저장 이후 미저장 update는 복구하지 않는다.
+사용자 추가 승인으로 local checkpoint가 정상 저장된 후 `CHECKPOINT_DIR`에 `last.pt`와 `best.pt`를 복사한다. 기본은 `MyDrive/NFPLight_runs/<RUN_ROOT 이름>/`이다. 별도 cell은 늘리지 않았다. 기존 Drive 폴더는 거부하므로 새 run 이름을 사용한다. Local `run/best.pt`는 현재 선정된 eligible best_render가 있으면 그것을, 없으면 best_map을 내보낸다. 선정 조건은 기존 trainer를 그대로 따른다. Best가 갱신될 때만 best를 다시 쓰고 last는 checkpoint 저장마다 갱신한다. 초기 validation 후의 첫 full checkpoint에도 적용한다.
+
+`last.pt`는 model·Adam·scheduler·전체 RNG·단계·best 이력을 포함한 재개용 전체 상태다. `best.pt`는 inference용 model-only weight이며 exact resume에 쓸 수 없다. 두 파일은 각각 임시 파일 쓰기 후 교체한다. Full last에도 best state가 포함되므로 Drive best 파일 갱신 중 실패해도 성공한 last에서 선정 모델을 복원할 수 있다. Drive 복사 실패는 local checkpoint를 보존하고 화면에 표시하며 다음 checkpoint 때 다시 시도한다. 복사 중에는 phase가 `Drive checkpoint backup`으로 표시된다.
+
+Full `run/last.pt`의 exact resume는 모델/설정/Adam/scheduler/전체 RNG, Python/PyTorch/CUDA/GPU, 데이터 절대 경로·size·mtime가 같아야 한다. Drive 보존이 이 조건을 완화하지 않는다. Colab reset·재업로드·다른 GPU·Windows checkpoint 이관은 거부될 수 있다. 마지막 저장 이후 미저장 update는 복구하지 않는다. 기존 버전으로 이미 실행 중인 trainer에는 새 자동 backup이 소급 적용되지 않는다.
 
 현재 테스트 실행은 사용자 지시로 보류했다. 실제 Colab/Drive 인증·GPU 학습의 표시 결과는 아직 확인하지 않았다. Colab 자원 가용성과 병렬 실행 제한은 [공식 FAQ](https://research.google.com/colaboratory/faq.html)를 따른다.
