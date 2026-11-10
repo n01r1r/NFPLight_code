@@ -29,6 +29,6 @@
     "roughness_floor": 0.05
   },
   "ram_reserve_bytes": 4294967296,
-  "micro_batch_size": 1,
-  "accumulation_steps": 4
+  "micro_batch_size": 2,
+  "accumulation_steps": 2
 }
