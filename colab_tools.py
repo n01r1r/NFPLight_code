@@ -2,6 +2,7 @@
 from collections import Counter
 import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
+import shutil
 import sys
 import time
 
@@ -28,18 +29,68 @@ def write_once(path, text):
     return path
 
 
-def attach_drive_dataset(source, destination):
+def shard_path(row, data_root):
+    parts = PurePosixPath(row['shard_path'].replace('\\', '/')).parts
+    if parts.count('source_shards') != 1 or '..' in parts:
+        raise ValueError('expected one source_shards anchor without path traversal')
+    path = data_root.joinpath(*parts[parts.index('source_shards'):])
+    if not path.resolve().is_relative_to(data_root.resolve()) or path.suffix != '.npz':
+        raise ValueError('shard escapes dataset root or is not NPZ')
+    return path
+
+
+def stage_drive_dataset(source, destination):
+    from tqdm import tqdm
+
     source, destination = Path(source).resolve(), relative_path(destination)
     if not source.is_dir() or not (source / 'source_shards').is_dir():
         raise FileNotFoundError(f'expected Drive dataset folder with source_shards: {source}')
-    if not (source / 'manifests/fabric_leather_training_manifest.jsonl').is_file():
-        raise FileNotFoundError('Drive dataset manifest missing')
-    if destination.exists() or destination.is_symlink():
-        if destination.resolve() != source:
-            raise FileExistsError(f'refusing to replace dataset path: {destination}')
-        return destination
-    destination.parent.mkdir(parents = True, exist_ok = True)
-    destination.symlink_to(source, target_is_directory = True)
+    local = destination.resolve()
+    if (destination.is_symlink() or not local.is_relative_to(Path.cwd().resolve())
+            or local.is_relative_to(source) or source.is_relative_to(local)
+            or local.is_relative_to(Path('/content/drive').resolve())):
+        raise ValueError('use a separate local session directory, not a Drive link')
+    manifest = Path('manifests/fabric_leather_training_manifest.jsonl')
+    text = (source / manifest).read_text(encoding = 'utf-8')
+    rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+    pending, seen = [], set()
+    destination.mkdir(parents = True, exist_ok = True)
+    for row in rows:
+        if row['split'] == 'test':
+            continue
+        if row['split'] not in ('train', 'val'):
+            raise ValueError('unexpected dataset split')
+        original = shard_path(row, source)
+        target = shard_path(row, destination)
+        if target in seen or target.is_symlink():
+            raise ValueError('duplicate shard or local shard symlink')
+        seen.add(target)
+        stat = original.stat()
+        if target.exists():
+            saved = target.stat()
+            if (saved.st_size, saved.st_mtime_ns) != (stat.st_size, stat.st_mtime_ns):
+                raise FileExistsError(f'local cache differs; use a new local folder: {target}')
+        else:
+            pending.append((original, target, stat.st_size, stat.st_mtime_ns))
+    required = sum(size for _, _, size, _ in pending)
+    if shutil.disk_usage(destination).free < required + 12 * 2**30:
+        raise OSError('insufficient local disk for dataset and 12 GiB training reserve')
+    with tqdm(total = required, unit = 'B', unit_scale = True, desc = 'Drive → local', disable = not pending) as bar:
+        for original, target, size, mtime in pending:
+            target.parent.mkdir(parents = True, exist_ok = True)
+            temporary = target.with_suffix('.npz.copying')
+            if temporary.is_symlink():
+                raise ValueError('local copy temporary path is a symlink')
+            try:
+                shutil.copy2(original, temporary)
+                current = original.stat()
+                if temporary.stat().st_size != size or (current.st_size, current.st_mtime_ns) != (size, mtime):
+                    raise OSError(f'Drive shard changed or copy incomplete: {original}')
+                temporary.replace(target)
+            finally:
+                temporary.unlink(missing_ok = True)
+            bar.update(size)
+    write_once(destination / manifest, text)
     return destination
 
 
@@ -58,12 +109,7 @@ def relocate_manifest(manifest, data_root, output, *, expected_counts = None):
             raise ValueError('duplicate material id')
         ids.add(row['material_id'])
         groups[row['split']].add(row['group_id'])
-        parts = PurePosixPath(row['shard_path'].replace('\\', '/')).parts
-        if parts.count('source_shards') != 1 or '..' in parts:
-            raise ValueError('expected one source_shards anchor without path traversal')
-        path = data_root.joinpath(*parts[parts.index('source_shards'):])
-        if not path.resolve().is_relative_to(data_root.resolve()) or path.suffix != '.npz':
-            raise ValueError('shard escapes dataset root or is not NPZ')
+        path = shard_path(row, data_root)
         if not path.is_file():
             raise FileNotFoundError(path)
         if path in paths:
@@ -269,8 +315,9 @@ def monitor(run_root, process = None, *, refresh_seconds = 5, plots = True, foll
     if not isinstance(refresh_seconds, (int, float)) or not 0 < refresh_seconds < float('inf'):
         raise ValueError('refresh_seconds must be finite and positive')
     from tqdm import tqdm
-    from IPython.display import clear_output, display
+    from IPython.display import Pretty, display
     reader = TrainingLog(run_root)
+    header, chart, plotted = None, None, None
     try:
         while True:
             finished = process is not None and process.poll() is not None
@@ -285,9 +332,8 @@ def monitor(run_root, process = None, *, refresh_seconds = 5, plots = True, foll
                     phase = 'training / validation (legacy run)'
                 else:
                     phase = 'model initialization / initial validation (legacy run; no crop progress)'
-            clear_output(wait = True)
-            print(f"{phase} | {snapshot['status']['status']} | PID {snapshot['status'].get('pid')} | alive={snapshot['status']['process_alive']} | "
-                  f"last logged update={latest.get('total_step', 'none')} | completed validations={len(snapshot['validation'])}", flush = True)
+            lines = [f"{phase} | {snapshot['status']['status']} | PID {snapshot['status'].get('pid')} | alive={snapshot['status']['process_alive']} | "
+                     f"last logged update={latest.get('total_step', 'none')} | completed validations={len(snapshot['validation'])}"]
             elapsed = max(0., time.time() - snapshot['process_started_at'])
             stage = activity.get('stage', latest.get('stage', snapshot['status'].get('stage', 'map')))
             step = activity.get('stage_step', latest.get('step', 0))
@@ -295,25 +341,37 @@ def monitor(run_root, process = None, *, refresh_seconds = 5, plots = True, foll
                 step = max(step, latest['step'])
             cap = snapshot['policy'].get(stage + '_cap')
             if cap:
-                print(tqdm.format_meter(step, cap, elapsed, prefix = stage + ' train step (cap)',
+                lines.append(tqdm.format_meter(step, cap, elapsed, prefix = stage + ' train step (cap)',
                     bar_format = '{desc}: {n_fmt}/{total_fmt} |{bar}| [{elapsed}]'))
             else:
-                print(f'{stage} train step: {step} | elapsed {elapsed:.0f}s')
-            if phase == 'validation':
-                print(f'Val crops: {done}/{total}. Final loss after the full pass.')
-            if latest:
-                print(f"Train loss: {latest['loss']:.6g} | lr: {latest.get('lr', 'unrecorded')}")
-            if activity.get('updated_at'):
-                print(f"Last progress: {max(0., time.time() - activity['updated_at']):.0f}s ago")
+                lines.append(f'{stage} train step: {step} | elapsed {elapsed:.0f}s')
+            lines.append(f'Val crops: {done}/{total}. Final loss after the full pass.' if phase == 'validation' else '')
+            lines.append(f"Train loss: {latest['loss']:.6g} | lr: {latest.get('lr', 'unrecorded')}" if latest
+                         else 'Waiting for first optimizer update')
+            lines.append(f"Last progress: {max(0., time.time() - activity['updated_at']):.0f}s ago" if activity.get('updated_at') else '')
             backup = snapshot['backup']
             if backup:
-                print(f"Drive backup step {backup['total_step']} | {backup['directory']}" if backup['ok']
-                      else f"Drive backup failed: {backup['error']} | local checkpoint preserved")
-            if plots:
+                lines.append(f"Drive backup step {backup['total_step']} | {backup['directory']}" if backup['ok']
+                             else f"Drive backup failed: {backup['error']} | local checkpoint preserved")
+            else:
+                lines.append('')
+            text = Pretty('\n'.join(lines))
+            if header is None:
+                header = display(text, display_id = True)
+            else:
+                header.update(text)
+            signature = (latest.get('total_step'), len(snapshot['validation']))
+            if plots and (chart is None or signature != plotted):
                 import matplotlib.pyplot as plt
                 figure = plot_training(snapshot)
-                display(figure)
-                plt.close(figure)
+                try:
+                    if chart is None:
+                        chart = display(figure, display_id = True)
+                    else:
+                        chart.update(figure)
+                    plotted = signature
+                finally:
+                    plt.close(figure)
             if finished:
                 if process is not None and process.returncode:
                     error_path = Path('work') / (reader.root.name + '.stderr.log')

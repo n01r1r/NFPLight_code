@@ -13,7 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from colab_tools import attach_drive_dataset, monitor, relative_path, relocate_manifest, TrainingLog, plot_training, validation_loss
+from colab_tools import stage_drive_dataset, monitor, relative_path, relocate_manifest, TrainingLog, plot_training, validation_loss
 
 
 @pytest.mark.parametrize('name,profile', [('nfplight', 'nfplight_32_noquant'), ('unetpp', 'nested_32_noquant')])
@@ -31,9 +31,10 @@ def test_notebook_has_only_setup_data_training_live_cells(name, profile):
     text = json.dumps(notebook)
     assert '%%writefile' not in text and 'iframe' not in text and 'offline_report.html' not in text
     assert profile in text and 'drive.mount' in text
+    assert 'stage_drive_dataset' in text and 'MatSynth_PRIMA_Fabric_local' in text
     assert 'inspect.getsource' not in text and 'plot_pipeline' not in text and 'PROFILES' not in text
     source = (ROOT / 'colab_tools.py').read_text(encoding = 'utf-8')
-    assert 'clear_output(wait = True)' in source and 'from tqdm import tqdm' in source
+    assert 'clear_output' not in source and 'display_id = True' in source and 'from tqdm import tqdm' in source
     assert 'import serve' not in source and 'iframe' not in source
 
 
@@ -80,16 +81,41 @@ def data_fixture(tmp_path, monkeypatch):
     return root, manifest, rows
 
 
-def test_drive_attachment_never_replaces_other_data(tmp_path, monkeypatch):
+def test_drive_staging_copies_train_val_and_reuses_local_cache(tmp_path, monkeypatch):
     root, manifest, rows = data_fixture(tmp_path, monkeypatch)
-    assert attach_drive_dataset(root, root) == root
-    Path('other').mkdir()
-    with pytest.raises(FileExistsError):
-        attach_drive_dataset(root, 'other')
-    observed = []
-    monkeypatch.setattr(Path, 'symlink_to', lambda self, target, **kwargs: observed.append((self, target, kwargs)))
-    attach_drive_dataset(root, 'data/MatSynth_PRIMA_Fabric')
-    assert observed == [(Path('data/MatSynth_PRIMA_Fabric'), root.resolve(), {'target_is_directory':True})]
+    import shutil
+    from types import SimpleNamespace
+    monkeypatch.setattr(shutil, 'disk_usage', lambda path: SimpleNamespace(free=20 * 2**30))
+    local = stage_drive_dataset(root, 'data/local')
+    assert local == Path('data/local') and not local.is_symlink()
+    assert (local / 'manifests/fabric_leather_training_manifest.jsonl').read_bytes() == manifest.read_bytes()
+    assert len(list(local.rglob('*.npz'))) == 2
+    monkeypatch.setattr(shutil, 'copy2', lambda *args: pytest.fail('cache should be reused'))
+    assert stage_drive_dataset(root, local) == local
+    with pytest.raises(ValueError, match='local session'):
+        stage_drive_dataset(root, root)
+    shard = next(local.rglob('*.npz'))
+    shard.write_bytes(b'corrupt')
+    with pytest.raises(FileExistsError, match='local cache differs'):
+        stage_drive_dataset(root, local)
+
+
+def test_drive_staging_copy_failure_can_retry(tmp_path, monkeypatch):
+    import shutil
+    from types import SimpleNamespace
+    root, manifest, rows = data_fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(shutil, 'disk_usage', lambda path: SimpleNamespace(free=20 * 2**30))
+    original_copy = shutil.copy2
+    def interrupted(source, target):
+        Path(target).write_bytes(b'partial')
+        raise OSError('disconnected')
+    monkeypatch.setattr(shutil, 'copy2', interrupted)
+    with pytest.raises(OSError, match='disconnected'):
+        stage_drive_dataset(root, 'data/local')
+    assert not list(Path('data/local').rglob('*.copying'))
+    assert not list(Path('data/local').rglob('*.npz'))
+    monkeypatch.setattr(shutil, 'copy2', original_copy)
+    assert stage_drive_dataset(root, 'data/local') == Path('data/local')
     assert manifest.is_file() and len(rows) == 3
 
 
@@ -163,6 +189,42 @@ def test_native_monitor_final_update_partial_row_and_stage_separation(tmp_path, 
     assert result['latest']['total_step'] == 3
     assert result['profile'] == initial['profile']
     assert not list(root.rglob('*.html'))
+
+
+def test_monitor_reuses_outputs_and_only_redraws_on_new_loss(tmp_path, monkeypatch):
+    import colab_tools
+    import IPython.display
+    root = report_fixture(tmp_path, monkeypatch)
+    append_row(root, 1)
+    handles, draws = [], []
+    class Handle:
+        def __init__(self):
+            self.updates = []
+        def update(self, value):
+            self.updates.append(value)
+    def display(value, *, display_id):
+        assert display_id is True
+        handle = Handle()
+        handles.append(handle)
+        return handle
+    original_plot = colab_tools.plot_training
+    def plot(snapshot):
+        draws.append(snapshot['latest']['total_step'])
+        return original_plot(snapshot)
+    class Process:
+        calls, returncode = 0, 0
+        def poll(self):
+            self.calls += 1
+            if self.calls == 3:
+                append_row(root, 2)
+            return 0 if self.calls == 4 else None
+    monkeypatch.setattr(IPython.display, 'display', display)
+    monkeypatch.setattr(colab_tools, 'plot_training', plot)
+    monkeypatch.setattr(colab_tools.time, 'sleep', lambda seconds: None)
+    monitor(root, Process())
+    assert len(handles) == 2
+    assert len(handles[0].updates) == 3 and len(handles[1].updates) == 1
+    assert draws == [1, 2]
 
 
 def test_invalid_metrics_are_reported_and_model_not_constructed(tmp_path, monkeypatch):
