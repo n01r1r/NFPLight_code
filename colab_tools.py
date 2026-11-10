@@ -345,7 +345,9 @@ def monitor(run_root, process = None, *, refresh_seconds = 5, plots = True, foll
                     bar_format = '{desc}: {n_fmt}/{total_fmt} |{bar}| [{elapsed}]'))
             else:
                 lines.append(f'{stage} train step: {step} | elapsed {elapsed:.0f}s')
-            lines.append(f'Val crops: {done}/{total}. Final loss after the full pass.' if phase == 'validation' else '')
+            lines.append(f"Val crops: {done}/{total} | batch={activity.get('batch_size', 'unrecorded')} | "
+                         f"OOM retries={activity.get('oom_retries', 0)}. Final loss after the full pass."
+                         if phase == 'validation' else '')
             lines.append(f"Train loss: {latest['loss']:.6g} | lr: {latest.get('lr', 'unrecorded')}" if latest
                          else 'Waiting for first optimizer update')
             lines.append(f"Last progress: {max(0., time.time() - activity['updated_at']):.0f}s ago" if activity.get('updated_at') else '')

@@ -13,6 +13,7 @@
   "disk_reserve_bytes": 5368709120,
   "crop_count": 16,
   "cache_size": 4,
+  "validation_batch_size": 16,
   "validation_crops": [
     0,
     4,

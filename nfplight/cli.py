@@ -103,6 +103,8 @@ def validate_resume(payload, execution, profile, runtime, *, device):
         raise ValueError('exact resume requires checkpoint clean_runtime')
     if batch_contract(runtime) != batch_contract(frozen_runtime):
         raise ValueError('exact resume runtime mismatch: batching')
+    if runtime.get('validation_batch_size', 1) != frozen_runtime.get('validation_batch_size', 1):
+        raise ValueError('exact resume runtime mismatch: validation_batch_size')
     for key in ('batch_size', 'adam_betas', 'clip_norm', 'sampler_seed_offset', 'd4_seed_offset',
                 'augmentation_seed_offset', 'noise_seed_offset', 'crop_count', 'validation_crops', 'renderer', 'cpu_threads'):
         if runtime[key] != frozen_runtime[key]:
