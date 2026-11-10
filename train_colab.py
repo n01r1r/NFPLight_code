@@ -70,17 +70,39 @@ def main(argv = None):
         'initialization': 'exact_resume' if args.resume else 'fresh', 'profile': profile, 'sha256_computed': False})
     write_json(root / 'process.json', {'pid': psutil.Process().pid,
         'create_time': psutil.Process().create_time(), 'started_at': datetime.now(timezone.utc).isoformat()})
+    activity = {}
+    def progress(phase, completed = 0, total = None, **details):
+        now = time.time()
+        changed = phase != activity.get('phase') or (completed == 0 and activity.get('completed') != 0)
+        if changed or not activity:
+            activity['started_at'] = now
+        if changed or completed in (0, total) or now - activity.get('updated_at', 0) >= 1:
+            activity.update(phase = phase, completed = completed, total = total, updated_at = now, **details)
+            write_json(root / 'activity.json', activity)
+    cli.TrainingPipeline.progress = staticmethod(progress)
+    progress('initializing')
     # Same GPU initialization and checkpoint-copy optimization as the active local launcher.
     original_build, original_step = cli.build_model, training.Trainer.step
     def cuda_build(profile):
+        progress('model initialization')
         with torch.device('cuda'):
             model = original_build(profile)
         require(all(p.is_cuda and p.dtype == torch.float32 for p in model.parameters()), 'CUDA FP32 model required')
+        if profile['profile'] == 'nfplight_32_noquant':
+            require(sum(p.numel() for p in model.parameters()) == 64102378,
+                    'Colab NFPLight must use the original 64,102,378-parameter model')
         return model
     def timed_step(trainer):
         start = time.perf_counter()
+        step = trainer.state['stage_step']
+        interval = trainer.policy['evaluation_interval']
+        base = step // interval * interval
+        cap = trainer.policy[trainer.state['stage'] + '_cap']
+        total = min(interval, cap - base) if cap is not None else interval
+        progress('training', step - base, total, stage = trainer.state['stage'], stage_step = step)
         row = original_step(trainer)
         row['step_seconds'] = time.perf_counter() - start
+        progress('training', row['step'] - base, total, stage = row['stage'], stage_step = row['step'])
         return row
     cli.build_model = cuda_build
     training.Trainer.step = timed_step

@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_inference_cli_and_optimized_python_reject_nonfinite(tmp_path):
-    config = json.loads((ROOT / 'configs/7m_spatial.json').read_text())
+    config = json.loads((ROOT / 'tests/fixtures/numerical.json').read_text())
     config['network'].update(dim = 4, encoder_depths = [1], middle_depth = 1, decoder_depths = [1])
     write_json(tmp_path / 'config.json', config)
     network = NFPLight(**config['network'])
@@ -48,7 +48,7 @@ def test_inference_cli_and_optimized_python_reject_nonfinite(tmp_path):
 
 
 def test_training_cli_synthetic_fixture_one_update(tmp_path):
-    config = json.loads((ROOT / 'configs/7m_spatial.json').read_text())
+    config = json.loads((ROOT / 'tests/fixtures/numerical.json').read_text())
     config['network'].update(dim = 4, encoder_depths = [1], middle_depth = 1, decoder_depths = [1])
     write_json(tmp_path / 'config.json', config)
     runtime = json.loads((ROOT / 'configs/runtime.json').read_text())
@@ -84,7 +84,7 @@ def test_training_cli_synthetic_fixture_one_update(tmp_path):
 def test_exact_resume_rejects_changed_numerical_profile(section, key, value):
     from nfplight.cli import validate_resume
 
-    profile = json.loads((ROOT / 'configs/7m_spatial.json').read_text())
+    profile = json.loads((ROOT / 'tests/fixtures/numerical.json').read_text())
     runtime = json.loads((ROOT / 'configs/runtime.json').read_text())
     changed = copy.deepcopy(profile)
     changed[section][key] = value

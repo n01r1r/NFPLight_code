@@ -1,4 +1,4 @@
-"""Colab path and report adapters; the model and trainer remain unchanged."""
+"""Drive paths, process launch, and the two loss plots used by Colab."""
 from collections import Counter
 import json
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -107,8 +107,7 @@ class TrainingLog:
         def read(path, default):
             return json.loads(path.read_text(encoding = 'utf-8')) if path.exists() else default
         path = self.root / 'run/train.jsonl'
-        metrics = ('loss', 'ndrs_sum', 'normal_loss', 'diffuse_loss', 'roughness_loss',
-                   'specular_loss', 'render_loss', 'lr', 'gradient_norm', 'step_seconds')
+        metrics = ('loss',)
         if path.exists():
             stat = path.stat()
             file_id = (stat.st_dev, stat.st_ino)
@@ -170,7 +169,8 @@ class TrainingLog:
         implementation = read(self.root / 'run/implementation.json', {})
         launch = read(self.root / 'launch.json', {})
         profile = implementation.get('profile', launch.get('profile', {}))
-        policy = read(self.root / 'run/execution_config.json', {}).get('policy', {})
+        execution = read(self.root / 'run/execution_config.json', {})
+        policy = execution.get('policy', {})
         train = {}
         for key, points in self.series.items():
             if len(points) <= 6000:
@@ -185,178 +185,136 @@ class TrainingLog:
                     chosen.add(start + min(range(len(block)), key = lambda i: block[i][column]))
                     chosen.add(start + max(range(len(block)), key = lambda i: block[i][column]))
             train[key] = [points[index] for index in sorted(chosen)]
-        return {'status':status, 'latest':self.latest, 'train':train, 'validation':self.validation,
+        return {'activity':read(self.root / 'activity.json', {}),
+                'process_started_at':process.get('create_time', time.time()),
+                'render_weight':execution.get('scientific_settings', {}).get('loss', {}).get('render_weight', 1.),
+                'status':status, 'latest':self.latest, 'train':train, 'validation':self.validation,
                 'profile':profile, 'policy':policy, 'fetched_at':datetime.now(timezone.utc).isoformat(),
                 'latest_validation':self.validation[-1] if self.validation else None,
                 'history_note':'Train: current invocation; validation: checkpoint history included', 'sha256_computed':False}
 
 
+def validation_loss(row, weight = 1.):
+    mean = row['populations']['heldout']['mean']
+    return mean['ndrs_sum'] + (weight * mean['render_l1'] if row['stage'] == 'render' else 0.)
+
+
 def plot_training(snapshot):
     import matplotlib.pyplot as plt
-    fig, axes = plt.subplots(4, 3, figsize = (17, 14), layout = 'constrained')
-    train_panels = [(0, ['loss'], 'Train objective'), (1, ['ndrs_sum'], 'Train NDRS L1 sum'),
-        (2, ['normal_loss', 'diffuse_loss', 'roughness_loss', 'specular_loss'], 'Train component L1'),
-        (3, ['render_loss'], 'Train render L1'), (8, ['lr'], 'Learning rate'),
-        (9, ['gradient_norm'], 'Gradient norm before clip'), (10, ['step_seconds'], 'Seconds / optimizer update')]
-    for index, metrics, title in train_panels:
-        ax = axes.flat[index]
-        for stage in ('map', 'render'):
-            for metric in metrics:
-                points = snapshot['train'].get(stage + ':' + metric, [])
-                if not points:
-                    continue
-                x, raw, smooth = zip(*points)
-                line, = ax.plot(x, smooth, label = stage + ':' + metric)
-                ax.plot(x, raw, color = line.get_color(), alpha = .18, linewidth = .5)
-        ax.set_title(title + ' (raw / mean100)')
-        if index == 8 and ax.lines:
-            ax.set_yscale('log')
-    val_panels = [(4, ['ndrs_sum'], 'Validation NDRS sum', True),
-                  (5, ['map_normal', 'map_diffuse', 'map_roughness', 'map_specular'], 'Validation component L1', False),
-                  (6, ['render_l1'], 'Validation novel-light render L1', True),
-                  (7, ['normal_degrees'], 'Validation normal angle (degrees)', True)]
-    for index, metrics, title, by_category in val_panels:
-        ax = axes.flat[index]
-        for stage in ('map', 'render'):
-            for population in (('overall', 'Fabric', 'Leather') if by_category else ('overall',)):
-                for metric in metrics:
-                    points = []
-                    for row in snapshot['validation']:
-                        if row['stage'] != stage:
-                            continue
-                        heldout = row['populations']['heldout']
-                        values = heldout['mean'] if population == 'overall' else heldout['category'].get(population, {})
-                        if metric in values:
-                            points.append((row['total_step'], values[metric]))
-                    if points:
-                        x, y = zip(*points)
-                        ax.plot(x, y, '.-', label = stage + ':' + population + ':' + metric)
-        ax.set_title(title)
-    for ax in axes.flat:
-        ax.set_xlabel('Total optimizer update')
+    fig, axes = plt.subplots(1, 2, figsize = (11, 3.5), layout = 'constrained')
+    for stage in ('map', 'render'):
+        points = snapshot['train'].get(stage + ':loss', [])
+        if points:
+            x, raw, mean = zip(*points)
+            line, = axes[0].plot(x, mean, '.-', markersize = 3, label = stage)
+            axes[0].plot(x, raw, color = line.get_color(), alpha = .2, linewidth = .5)
+        rows = [row for row in snapshot['validation'] if row['stage'] == stage]
+        if rows:
+            axes[1].plot([row['total_step'] for row in rows],
+                [validation_loss(row, snapshot['render_weight']) for row in rows], 'o-', markersize = 4, label = stage)
+    for ax, title, waiting in zip(axes, ('Train loss', 'Validation loss'),
+                                ('Waiting for first optimizer update', 'Waiting for completed validation')):
+        ax.set(title = title, xlabel = 'Optimizer update', ylabel = 'Loss (log scale)')
+        ax.set_yscale('log', nonpositive = 'mask')
         ax.grid(alpha = .2)
         if ax.lines:
-            ax.legend(fontsize = 7)
-    ax = axes.flat[11]
-    ax.axis('off')
-    state = snapshot['status']
-    lines = [f'{key}: {state.get(key)}' for key in ('status', 'stage', 'stage_step', 'total_step', 'process_alive')]
-    for stage in ('map', 'render'):
-        convergence = state.get('convergence', {}).get(stage, {})
-        lines.append(f"{stage}: floor={convergence.get('floor_reached', '—')} bad={convergence.get('floor_bad_observations', '—')}/{snapshot['policy'].get('floor_observations', '—')}")
-    lines += ['Train: valid-pixel weighted minibatch', 'Val: crop mean → material macro',
-              'Train: current invocation', 'Val: checkpoint history included; missing values omitted']
-    ax.text(0, 1, '\n'.join(lines), va = 'top', fontsize = 10)
-    fig.suptitle(snapshot['profile'].get('profile', 'Initializing model') + ' · FP32 · optimizer updates', fontsize = 15)
+            ax.legend()
+            if any(value == 0 for line in ax.lines for value in line.get_ydata()):
+                ax.text(.02, .02, 'Zero loss cannot appear on log axis', transform = ax.transAxes, fontsize = 8)
+        else:
+            ax.text(.5, .5, waiting, ha = 'center', transform = ax.transAxes)
     return fig
 
 
-def monitor(run_root, process = None, *, refresh_seconds = 10, plots = True):
+def launch_training(config, manifest, run_root, resume = None):
+    import subprocess
+    import psutil
+    config, manifest, run_root = map(relative_path, (config, manifest, run_root))
+    if run_root.exists():
+        raise FileExistsError(f'Choose a new run name: {run_root}')
+    for metadata in Path('runs').glob('*/process.json'):
+        record = json.loads(metadata.read_text(encoding = 'utf-8'))
+        try:
+            child = psutil.Process(record['pid'])
+            if child.is_running() and abs(child.create_time() - record['create_time']) < .01:
+                raise RuntimeError(f'Trainer PID {child.pid} is running. Use the Live view cell.')
+        except psutil.NoSuchProcess:
+            pass
+    if resume is not None:
+        relative_path(resume)
+    Path('work').mkdir(exist_ok = True)
+    command = [sys.executable, '-u', 'train_colab.py', '--config', str(config),
+               '--manifest', str(manifest), '--run-root', str(run_root)]
+    if resume is not None:
+        command.extend(['--resume', str(resume)])
+    stdout, stderr = Path('work') / (run_root.name + '.stdout.log'), Path('work') / (run_root.name + '.stderr.log')
+    with stdout.open('xb') as out, stderr.open('xb') as err:
+        process = subprocess.Popen(command, stdout = out, stderr = err)
+    print(f'Started PID {process.pid}. Loading PyTorch and checking resources...', flush = True)
+    try:
+        while process.poll() is None and not (run_root / 'process.json').exists():
+            time.sleep(.2)
+        if process.poll() is not None:
+            raise RuntimeError(stderr.read_text(encoding = 'utf-8', errors = 'replace')[-8000:])
+    except BaseException:
+        print(f'Child PID {process.pid}; still running: {process.poll() is None}', flush = True)
+        raise
+    return process
+
+
+def monitor(run_root, process = None, *, refresh_seconds = 5, plots = True, follow = True):
     if not isinstance(refresh_seconds, (int, float)) or not 0 < refresh_seconds < float('inf'):
         raise ValueError('refresh_seconds must be finite and positive')
-    from tqdm.auto import tqdm
-    from nfplight.storage import write_json
+    from tqdm import tqdm
+    from IPython.display import clear_output, display
     reader = TrainingLog(run_root)
-    reports = reader.root / 'reports'
-    reports.mkdir(exist_ok = True)
-    progress, progress_stage, exported, previous = None, None, 0., None
     try:
         while True:
-            finished = process is None or process.poll() is not None
+            finished = process is not None and process.poll() is not None
             snapshot = reader.snapshot()
+            finished = finished or not snapshot['status']['process_alive']
+            activity = snapshot['activity']
             latest = snapshot['latest'] or {}
-            stage = latest.get('stage', snapshot['status'].get('stage', 'initial validation'))
+            phase = activity.get('phase')
+            done, total = activity.get('completed', 0), activity.get('total')
+            if phase is None:
+                if latest:
+                    phase = 'training / validation (legacy run)'
+                else:
+                    phase = 'model initialization / initial validation (legacy run; no crop progress)'
+            clear_output(wait = True)
+            print(f"{phase} | {snapshot['status']['status']} | PID {snapshot['status'].get('pid')} | alive={snapshot['status']['process_alive']} | "
+                  f"last logged update={latest.get('total_step', 'none')} | completed validations={len(snapshot['validation'])}", flush = True)
+            elapsed = max(0., time.time() - snapshot['process_started_at'])
+            stage = activity.get('stage', latest.get('stage', snapshot['status'].get('stage', 'map')))
+            step = activity.get('stage_step', latest.get('step', 0))
+            if latest.get('stage') == stage:
+                step = max(step, latest['step'])
+            cap = snapshot['policy'].get(stage + '_cap')
+            if cap:
+                print(tqdm.format_meter(step, cap, elapsed, prefix = stage + ' train step (cap)',
+                    bar_format = '{desc}: {n_fmt}/{total_fmt} |{bar}| [{elapsed}]'))
+            else:
+                print(f'{stage} train step: {step} | elapsed {elapsed:.0f}s')
+            if phase == 'validation':
+                print(f'Val crops: {done}/{total}. Final loss after the full pass.')
+            if latest:
+                print(f"Train loss: {latest['loss']:.6g} | lr: {latest.get('lr', 'unrecorded')}")
+            if activity.get('updated_at'):
+                print(f"Last progress: {max(0., time.time() - activity['updated_at']):.0f}s ago")
             if plots:
-                from IPython.display import clear_output, display
                 import matplotlib.pyplot as plt
-                if progress is not None:
-                    progress.close()
-                clear_output(wait = True)
                 figure = plot_training(snapshot)
                 display(figure)
-            if plots or stage != progress_stage:
-                if progress is not None:
-                    progress.close()
-                progress = tqdm(total = None, initial = latest.get('step', 0), desc = f'{stage} optimizer updates', unit = 'update')
-                progress_stage = stage
-            progress.update(max(0, latest.get('step', 0) - progress.n))
-            progress.set_postfix(loss = latest.get('loss'), lr = latest.get('lr'), seconds = latest.get('step_seconds'),
-                val_step = (snapshot['latest_validation'] or {}).get('total_step'), status = snapshot['status']['status'])
-            key = (stage, snapshot['status']['status'], len(snapshot['validation']))
-            if finished or key != previous or time.monotonic() - exported >= 60:
-                write_json(reports / 'snapshot.json', snapshot)
-                if plots:
-                    figure.savefig(reports / 'training.png', dpi = 100)
-                previous, exported = key, time.monotonic()
-            if plots:
                 plt.close(figure)
             if finished:
+                if process is not None and process.returncode:
+                    error_path = Path('work') / (reader.root.name + '.stderr.log')
+                    raise RuntimeError(error_path.read_text(encoding = 'utf-8', errors = 'replace')[-8000:])
+                return snapshot
+            if not follow:
                 return snapshot
             time.sleep(refresh_seconds)
-    finally:
-        if progress is not None:
-            progress.close()
-
-
-def plot_pipeline(profile):
-    """Documentation diagram only: no model construction or tensor computation."""
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
-    fig, axes = plt.subplots(1, 2, figsize = (17, 8), layout = 'constrained')
-    ax = axes[0]
-    ax.set(xlim = (0, 10), ylim = (0, 10), title = 'NFPLight training pipeline')
-    ax.axis('off')
-    nested = profile['network'].get('architecture', 'nfplight') == 'nested'
-    architecture = 'NAFBlock U-Net++ DS OFF' if nested else 'NFPLight additive U-Net'
-    labels = [
-        'NPZ material maps: N3 / D3 / R1 / stored S3\n16 crops × 256²; source uint8',
-        'MaterialBank: N → unit XYZ, D → linear RGB\nD4 normal transform; S target fixed F0=0.04',
-        'canonical_target + valid Nz>0 + roughness floor\nGPU FP32 renderer: near4 / far12 → B×6×256×256',
-        'Features: gain9, geometry, relation/log-relation\n9 appearance + 9 log + relation + log-relation + non-sat = 21',
-        architecture + '\nraw B×10×256×256 → unit-normal decode',
-        'Map: LN + LD + LR + LS\nRender: map sum + 1.0 × rendered linear-HDR L1',
-        'valid-pixel weighted micro1 × accum4 → Adam\nheldout material macro → scheduler / best / floor counter',
-    ]
-    for i, label in enumerate(labels):
-        y = 9.3 - 1.35 * i
-        ax.add_patch(FancyBboxPatch((.3, y - .45), 9.4, .95, boxstyle = 'round,pad=.08',
-                                   facecolor = '#eef5fb', edgecolor = '#3973a0'))
-        ax.text(5, y, label, ha = 'center', va = 'center', fontsize = 10)
-        if i:
-            ax.add_patch(FancyArrowPatch((5, y + .88), (5, y + .53), arrowstyle = '-|>', mutation_scale = 12))
-    ax = axes[1]
-    if not nested:
-        ax.set(xlim = (0, 10), ylim = (0, 10), title = 'Original NFPLight: two encoders / additive skip')
-        ax.axis('off')
-        dim = profile['network']['dim']
-        for x, label in [(2, 'Appearance 18ch'), (7, 'Relation / log / mask 3ch')]:
-            for level in range(5):
-                ax.text(x, 9 - level * 1.4, f'{label if level == 0 else ""}\nC={dim * 2**level}',
-                        ha = 'center', bbox = {'boxstyle':'round,pad=.3', 'fc':'#e6f2ea'})
-                if level:
-                    ax.annotate('', (x, 9.5 - level * 1.4), (x, 10 - level * 1.4), arrowprops = {'arrowstyle':'->'})
-        ax.text(5, 1.4, 'Appearance skips → additive decoder → D3 / S3\nConcat appearance+relation skips → additive decoder → N3 / R1',
-                ha = 'center', fontsize = 10)
-        fig.suptitle(architecture + ' · FP32 · no observation quantization', fontsize = 15)
-        return fig
-    ax.set(xlim = (-.7, 4.7), ylim = (-1.9, 5.2), title = 'U-Net++ grid for each decoder (DS OFF)')
-    ax.axis('off')
-    for col in range(5):
-        for level in range(5 - col):
-            x, y = col, 4 - level
-            ax.text(x, y, f'X{level},{col}', ha = 'center', va = 'center',
-                    bbox = {'boxstyle':'round,pad=.35', 'fc':'#e6f2ea' if col == 0 else '#fff0d9'})
-            if col == 0 and level < 4:
-                ax.add_patch(FancyArrowPatch((x, y - .22), (x, y - .78),
-                    arrowstyle = '->', mutation_scale = 12, color = '#777777'))
-            if col:
-                for earlier in range(col):
-                    ax.add_patch(FancyArrowPatch((earlier + .20, y - .12), (x - .22, y - .12),
-                        arrowstyle = '->', mutation_scale = 9, color = '#b58b4b', alpha = .5))
-                ax.add_patch(FancyArrowPatch((col - 1 + .15, y - 1 + .22), (x - .12, y - .18),
-                    arrowstyle = '->', mutation_scale = 12, color = '#3973a0'))
-    channels = [profile['network']['dim'] * 2**level for level in range(5)]
-    ax.text(0, -.75, f'Xl,0 = encoder / middle\nAppearance: C={channels}\nRelation: same C; N/R decoder input concat → 2C', fontsize = 10)
-    ax.text(0, -1.6, 'Appearance decoder → D3 / S3; concatenated decoder → N3 / R1\nX0,4 only supervised. Fusion: 1×1 projection + 2 NAFBlocks.', fontsize = 10)
-    fig.suptitle(f"NAFBlock U-Net++ · dim{profile['network']['dim']} · FP32 · no observation quantization", fontsize = 15)
-    return fig
+    except KeyboardInterrupt:
+        print('Viewer interrupted. Trainer is unchanged; use the Live cell to reconnect.', flush = True)
+        raise

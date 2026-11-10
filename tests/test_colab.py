@@ -13,12 +13,14 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from colab_tools import attach_drive_dataset, monitor, relative_path, relocate_manifest, TrainingLog, plot_pipeline
+from colab_tools import attach_drive_dataset, monitor, relative_path, relocate_manifest, TrainingLog, plot_training, validation_loss
 
 
-def test_notebook_has_executable_sections_no_html_plots_or_embedded_sources():
-    notebook = nbformat.read(ROOT / 'notebooks/train.ipynb', as_version = 4)
+@pytest.mark.parametrize('name,profile', [('nfplight', 'nfplight_32_noquant'), ('unetpp', 'nested_32_noquant')])
+def test_notebook_has_only_setup_data_training_live_cells(name, profile):
+    notebook = nbformat.read(ROOT / f'notebooks/{name}.ipynb', as_version = 4)
     nbformat.validate(notebook)
+    assert len(notebook.cells) == 8
     for cell in notebook.cells:
         if cell.cell_type == 'markdown':
             assert cell.source.startswith('## ') and len(cell.source.splitlines()) == 1
@@ -28,10 +30,10 @@ def test_notebook_has_executable_sections_no_html_plots_or_embedded_sources():
             assert not any(token.type == tokenize.COMMENT for token in tokenize.generate_tokens(io.StringIO(cell.source).readline))
     text = json.dumps(notebook)
     assert '%%writefile' not in text and 'iframe' not in text and 'offline_report.html' not in text
-    assert 'RUN_TRAINING = False' in text and 'drive.mount' in text and 'MOUNT_DRIVE = True' in text
-    assert 'Features.forward' not in text
+    assert profile in text and 'drive.mount' in text
+    assert 'inspect.getsource' not in text and 'plot_pipeline' not in text and 'PROFILES' not in text
     source = (ROOT / 'colab_tools.py').read_text(encoding = 'utf-8')
-    assert 'clear_output(wait = True)' in source and 'from tqdm.auto import tqdm' in source
+    assert 'clear_output(wait = True)' in source and 'from tqdm import tqdm' in source
     assert 'import serve' not in source and 'iframe' not in source
 
 
@@ -151,15 +153,15 @@ def test_native_monitor_final_update_partial_row_and_stage_separation(tmp_path, 
     assert snapshot['train']['map:loss'][0][2] == .4
     assert snapshot['train']['render:loss'][0][2] == .8
     class Completed:
+        returncode = 0
         def poll(self):
             append_row(root, 2, stage = 'render', total = 3)
             return 0
     result = monitor(root, Completed(), refresh_seconds = .01, plots = False)
     assert result['latest']['total_step'] == 3
-    result = monitor(root, refresh_seconds = .01, plots = True)
+    result = monitor(root, refresh_seconds = .01, plots = True, follow = False)
     assert result['latest']['total_step'] == 3
-    assert (root / 'reports/training.png').stat().st_size > 1000
-    assert json.loads((root / 'reports/snapshot.json').read_text())['profile'] == initial['profile']
+    assert result['profile'] == initial['profile']
     assert not list(root.rglob('*.html'))
 
 
@@ -205,11 +207,15 @@ def test_launcher_publishes_profile_before_process_and_resume_is_strict():
         validate_resume({'clean_profile':profile}, {}, changed, runtime, device = 'cuda')
 
 
-def test_pipeline_plots_cover_both_profiles_without_model_execution():
+def test_loss_plot_is_one_by_two_with_log_axes_and_single_update_visible():
     import matplotlib.pyplot as plt
     import torch
-    for name in ('nfplight_32_noquant', 'nested_32_noquant'):
-        figure = plot_pipeline(json.loads((ROOT / f'configs/{name}.json').read_text()))
-        assert len(figure.axes) == 2
-        plt.close(figure)
+    row = {'stage':'render', 'total_step':1001, 'populations':{'heldout':{'mean':{'ndrs_sum':.2, 'render_l1':.1}}}}
+    assert validation_loss(row, 2.) == .4
+    snapshot = {'train':{'map:loss':[[1,.5,.5]]}, 'validation':[row], 'render_weight':2.}
+    figure = plot_training(snapshot)
+    assert len(figure.axes) == 2
+    assert all(axis.get_yscale() == 'log' for axis in figure.axes)
+    assert figure.axes[0].lines[0].get_marker() == '.'
+    plt.close(figure)
     assert not torch.cuda.is_initialized()

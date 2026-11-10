@@ -83,9 +83,13 @@ class TrainingPipeline:
     def evaluate(self, network, stage, step):
         started = time.perf_counter()
         rows = []
+        progress = getattr(self, 'progress', None)
+        total = len(self.val.records) * len(self.runtime['validation_crops'])
+        if progress:
+            progress('validation', 0, total, stage = stage, stage_step = step)
         for index, record in enumerate(self.val.records):
             crops = []
-            for crop in self.runtime['validation_crops']:
+            for crop_index, crop in enumerate(self.runtime['validation_crops']):
                 target, mask, features = self.prepare(self.val.crop(index, crop)[None])
                 pred = decode(network(features), self.profile['decoder'])
                 _, parts = map_loss(pred, target, mask)
@@ -96,6 +100,9 @@ class TrainingPipeline:
                 if not np.isfinite(values).all():
                     raise ValueError('nonfinite validation')
                 crops.append(values)
+                if progress:
+                    progress('validation', index * len(self.runtime['validation_crops']) + crop_index + 1,
+                             total, stage = stage, stage_step = step)
             values = np.mean(crops, axis = 0)
             rows.append({**{key: record[key] for key in ('material_id', 'category', 'group_id')},
                 **dict(zip(('map_normal', 'map_diffuse', 'map_roughness', 'map_specular', 'render_l1', 'normal_degrees'), map(float, values))),

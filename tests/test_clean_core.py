@@ -23,7 +23,7 @@ def deterministic():
 
 
 def profile():
-    return read_config(ROOT / 'configs/7m_spatial.json')
+    return read_config(ROOT / 'tests/fixtures/numerical.json')
 
 
 def test_model_config_and_parameter_count():
@@ -196,7 +196,7 @@ def test_burst_average_and_fallback_never_drop_failed_frames():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason = 'CUDA unavailable')
 def test_cuda_alias_accepts_input_on_resolved_device():
-    config = json.loads((ROOT / 'configs/7m_spatial.json').read_text())
+    config = json.loads((ROOT / 'tests/fixtures/numerical.json').read_text())
     features = Features(config['features'], device = 'cuda')
     pair = torch.full((1, 6, 256, 256), .02, device = 'cuda')
     result, _ = features(pair, purpose = 'capture')
