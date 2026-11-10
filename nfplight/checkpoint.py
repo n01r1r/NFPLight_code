@@ -16,7 +16,20 @@ def read_config(path):
         raise ValueError('unsupported normal decoder')
     if value['features']['channels'] != value['network']['appearance_channels'] + 3:
         raise ValueError('feature channels disagree with network')
+    check_feature_contract(value)
     return value
+
+
+def check_feature_contract(config):
+    quantization = config['features'].get('synthetic_quantization', 'none')
+    if quantization not in ('none', 'linear16') or (
+            (quantization == 'linear16') != (config['feature_version'] == 'raw_calibrated_gain9_linear16_v1')):
+        raise ValueError('synthetic quantization and feature version disagree')
+    mode = config['features'].get('appearance_gain', 'scalar')
+    spatial_version = 'raw_calibrated_gain9_spatial_appearance_v1'
+    if mode not in ('scalar', 'spatial') or (
+            (mode == 'spatial') != (config['feature_version'] == spatial_version)):
+        raise ValueError('appearance gain and feature version disagree')
 
 
 def load_payload(path):
@@ -50,8 +63,15 @@ def state_dict(payload):
 
 
 def check_profile(payload, config):
+    check_feature_contract(config)
+    frozen_profile = payload.get('clean_profile')
+    if frozen_profile is not None and frozen_profile['network'] != config['network']:
+        raise ValueError('checkpoint/config network architecture conflict')
     scientific = payload.get('identity', {}).get('scientific_settings', {})
     rendering = scientific.get('rendering', {})
+    if (config['features'].get('appearance_gain', 'scalar') == 'spatial'
+            and payload.get('feature_version', rendering.get('feature_version')) is None):
+        raise ValueError('spatial appearance requires explicit checkpoint feature metadata')
     for actual, expected, label in (
         (payload.get('feature_version', rendering.get('feature_version')), config['feature_version'], 'feature version'),
         (payload.get('relation_version', rendering.get('relation_version')), config['features']['relation'], 'relation version'),
@@ -72,10 +92,23 @@ def check_profile(payload, config):
         raise ValueError('checkpoint requires unit normal decoding')
 
 
+def build_model(config):
+    settings = dict(config['network'])
+    architecture = settings.pop('architecture', 'nfplight')
+    if architecture == 'nfplight':
+        return NFPLight(**settings)
+    if architecture == 'nested':
+        if config['features']['channels'] != 21 or config['decoder'] != 'unit_xyz':
+            raise ValueError('nested candidate requires 21-channel features and unit XYZ')
+        from nfplight.nested_model import NestedModel
+        return NestedModel(**settings)
+    raise ValueError(f'unknown network architecture: {architecture}')
+
+
 def load_model(path, config, *, device):
     payload = load_payload(path)
     check_profile(payload, config)
-    network = NFPLight(**config['network'])
+    network = build_model(config)
     network.load_state_dict(state_dict(payload), strict = True)
     return network.to(device = device, dtype = torch.float32).eval()
 

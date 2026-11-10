@@ -6,6 +6,12 @@ from einops import rearrange
 import numpy as np
 
 
+def quantize_linear16(pair):
+    if pair.dtype != torch.float32 or not torch.isfinite(pair).all() or pair.amin() < 0 or pair.amax() > 1:
+        raise ValueError('linear16 requires finite FP32 observations in [0,1]')
+    return torch.floor(pair * 65535. + .5).clamp(0, 65535) / 65535.
+
+
 class Features:
     def __init__(self, config, *, device):
         for key in ('epsilon', 'log_epsilon', 'training_gain'):
@@ -16,6 +22,14 @@ class Features:
                 or config['normalization'] not in ('sample', 'batch')):
             raise ValueError('unsupported gain patch, saturation, geometry dtype or normalization')
         self.config = config
+        if config.get('synthetic_quantization', 'none') not in ('none', 'linear16'):
+            raise ValueError('unsupported synthetic observation quantization')
+        self.appearance_gain = config.get('appearance_gain', 'scalar')
+        if self.appearance_gain not in ('scalar', 'spatial'):
+            raise ValueError('unknown appearance gain')
+        if self.appearance_gain == 'spatial' and (
+                config['channels'] != 21 or config['relation'] != 'spatial_inverse_square_v1'):
+            raise ValueError('spatial appearance gain requires spatial 21-channel features')
         self.device = torch.device(device)
         self.size = size = config['size']
         if size != 256 or config['channels'] not in (21, 33):
@@ -68,6 +82,8 @@ class Features:
             if self.config['channels'] == 33 and not mask.all():
                 raise ValueError('author real33 requires full valid support')
             pair = pair * mask
+        if purpose == 'synthetic' and self.config.get('synthetic_quantization', 'none') == 'linear16':
+            pair = quantize_linear16(pair)
         near, far = pair.chunk(2, dim = 1)
         eps = self.config['epsilon']
         if purpose == 'capture':
@@ -87,6 +103,10 @@ class Features:
         log_relation = 1. - self.normalize(raw.clamp(min = eps).log(), mask)
         aligned = aligned.clamp(0, 1)
         saturated = (near.amax(1, keepdim = True) > self.config['saturation']) | (aligned.amax(1, keepdim = True) > self.config['saturation'])
+        # Preserve relation and saturation contracts; change only appearance RGB/log RGB.
+        if self.appearance_gain == 'spatial':
+            gain_map = rearrange(gain, 'b -> b 1 1 1') * self.spatial
+            aligned = (far * gain_map).clamp(0, 1)
         appearance = torch.cat((pair, aligned), dim = 1)
         if self.config['channels'] == 33:
             appearance = torch.cat((pair, pair, aligned), dim = 1)

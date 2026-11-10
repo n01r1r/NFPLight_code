@@ -10,12 +10,12 @@ import torch
 import numpy as np
 import psutil
 
-from nfplight.checkpoint import read_config, load_payload, load_model, check_profile, decode
+from nfplight.checkpoint import read_config, load_payload, load_model, check_profile, decode, build_model
 from nfplight.features import Features
 from nfplight.network import NFPLight
 from nfplight.pipeline import TrainingPipeline
 from nfplight.storage import identity, output_lock, save_checkpoint, write_json
-from nfplight.training import Trainer
+from nfplight.training import Trainer, batch_contract
 
 CONFIGS = Path(__file__).resolve().parents[1] / 'configs'
 
@@ -38,30 +38,33 @@ def infer(args):
     output = Path(args.out)
     if output.exists():
         raise FileExistsError('prediction output already exists')
-    config = read_config(args.config or CONFIGS / '7m_spatial.json')
+    if args.config is None:
+        raise ValueError('specify an explicit --config; no model is selected')
+    config = read_config(args.config)
     runtime = read_json(args.runtime)
-    configure_runtime(runtime, args.device)
+    backend = getattr(args, 'backend', 'torch')
+    configure_runtime(runtime, args.device if backend == 'torch' else 'cpu')
     source = load_payload(args.input)
     if source.get('schema') != 'nfplight.input.v1' or source.get('capture_gain_mode') != 'author_patch20':
         raise ValueError('expected reviewed FP32 input with author_patch20 contract')
-    if args.config is None:
-        checkpoint = load_payload(args.checkpoint)
-        rendering = checkpoint.get('identity', {}).get('scientific_settings', {}).get('rendering', {})
-        if (checkpoint.get('feature_version', rendering.get('feature_version')) is None
-                or checkpoint.get('relation_version', rendering.get('relation_version')) is None):
-            raise ValueError('checkpoint lacks feature/relation metadata; specify an explicit --config')
-        del checkpoint
-    model = load_model(args.checkpoint, config, device = args.device)
-    features = Features(config['features'], device = args.device)
-    pair = source['pair'].to(args.device)
-    mask = source['valid_mask'].to(args.device)
-    with torch.inference_mode():
-        inputs, trace = features(pair, purpose = 'capture', mask = mask)
-        raw = model(inputs)
-        prediction = decode(raw, config['decoder'])
+    if backend == 'tinygrad':
+        from nfplight.tinygrad_inference import predict
+        inputs, raw, prediction, trace = predict(args.checkpoint, config, source['pair'],
+            source['valid_mask'], device = args.device)
+    else:
+        model = load_model(args.checkpoint, config, device = args.device)
+        features = Features(config['features'], device = args.device)
+        pair = source['pair'].to(args.device)
+        mask = source['valid_mask'].to(args.device)
+        with torch.inference_mode():
+            inputs, trace = features(pair, purpose = 'capture', mask = mask)
+            raw = model(inputs)
+            prediction = decode(raw, config['decoder'])
     save_checkpoint(output, {'schema': 'nfplight.prediction.v1', 'config': config,
         'input_identity': identity(args.input), 'input_spatial_policy': source.get('spatial_policy', 'external_calibrated_pair'),
         'checkpoint_identity': identity(args.checkpoint),
+        'inference_backend': {'name': backend, 'device': args.device,
+                              'version': '0.11.0' if backend == 'tinygrad' else str(torch.__version__)},
         'features': inputs, 'raw_prediction': raw, 'prediction': prediction, 'trace': trace,
         'channel_order': 'normal XYZ, diffuse RGB, roughness, specular RGB'}, reserve_bytes = runtime['disk_reserve_bytes'])
 
@@ -91,13 +94,15 @@ def validate_resume(payload, execution, profile, runtime, *, device):
     check_profile(payload, profile)
     frozen_profile = payload.get('clean_profile')
     if frozen_profile is None:
-        frozen_profile = read_config(CONFIGS / '7m_spatial.json')
+        raise ValueError('exact resume profile mismatch: checkpoint lacks clean_profile')
     for key in ('network', 'features', 'decoder', 'feature_version'):
         if profile[key] != frozen_profile[key]:
             raise ValueError(f'exact resume profile mismatch: {key}')
     frozen_runtime = payload.get('clean_runtime')
     if frozen_runtime is None:
-        frozen_runtime = read_json(CONFIGS / 'legacy_resume.json')
+        raise ValueError('exact resume requires checkpoint clean_runtime')
+    if batch_contract(runtime) != batch_contract(frozen_runtime):
+        raise ValueError('exact resume runtime mismatch: batching')
     for key in ('batch_size', 'adam_betas', 'clip_norm', 'sampler_seed_offset', 'd4_seed_offset',
                 'augmentation_seed_offset', 'noise_seed_offset', 'crop_count', 'validation_crops', 'renderer', 'cpu_threads'):
         if runtime[key] != frozen_runtime[key]:
@@ -131,7 +136,10 @@ def train(args):
     output = Path(args.out).resolve()
     if output.exists():
         raise FileExistsError('training/migration requires a new output directory')
-    profile, runtime = read_config(args.config or CONFIGS / '7m_spatial.json'), read_json(args.runtime)
+    if args.config is None:
+        raise ValueError('specify an explicit --config; no model is selected')
+    profile, runtime = read_config(args.config), read_json(args.runtime)
+    batch_contract(runtime)
     configure_runtime(runtime, args.device)
     if profile['features']['relation'] != 'spatial_inverse_square_v1':
         raise ValueError('training requires the current spatial relation contract')
@@ -157,7 +165,7 @@ def train(args):
     if str(args.device).startswith('cuda'):
         torch.cuda.manual_seed_all(execution['policy']['seed'])
     pipeline = TrainingPipeline(execution, profile, runtime, device = args.device)
-    network = NFPLight(**profile['network']).to(args.device)
+    network = build_model(profile).to(args.device)
     count = sum(parameter.numel() for parameter in network.parameters())
     if payload is not None and count != execution['policy']['parameters']:
         raise ValueError('parameter count differs from resumable checkpoint')
@@ -196,11 +204,12 @@ def main():
     commands = parser.add_subparsers(dest = 'command', required = True)
     for name in ('infer', 'train'):
         command = commands.add_parser(name)
-        command.add_argument('--config', help = 'model profile; default is 7m_spatial for identified checkpoints')
+        command.add_argument('--config', help = 'explicit model profile; no default model')
         command.add_argument('--runtime', default = str(CONFIGS / 'runtime.json'))
         command.add_argument('--device', default = 'cpu' if name == 'infer' else 'cuda')
         command.add_argument('--out', required = True)
         if name == 'infer':
+            command.add_argument('--backend', choices = ('torch', 'tinygrad'), default = 'torch')
             command.add_argument('--input', required = True)
             command.add_argument('--checkpoint', required = True)
         else:

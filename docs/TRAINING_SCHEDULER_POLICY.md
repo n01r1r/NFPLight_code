@@ -1,11 +1,9 @@
-# 학습 scheduler와 운영 종료
+# 학습 scheduler와 종료
 
-현재 C 연장은 완료됐다. 이 문서는 실행을 재개하는 지시가 아니라 보존된 정책이다. [현재 상태와 결과](CURRENT_TRAINING_STATE.md)를 먼저 확인한다.
+현재 정책은 [training_noquant.json](../configs/training_noquant.json)과 [공통 trainer](../nfplight/training.py)가 결정한다. [Colab 안내](COLAB.md)를 따른다.
 
-승인된 C exact-state 연장은 render10k/total145k의 weights·Adam·scheduler·전체 RNG·best·floor counter를 그대로 복원했다. ReduceLROnPlateau 설정은 initial LR1e-5, floor1e-6, factor0.5, patience5, relative threshold0.005, cooldown2, eval1000이다. Floor에서 의미 있는 개선 없는20회 평가를 운영 종료 조건으로 사용했고 유한 학습 cap은 없었다.
+Map은 Adam LR5e-4/floor1e-5, render는 새 Adam LR1e-4/floor1e-6을 사용한다. ReduceLROnPlateau는 factor0.5, patience5, relative threshold0.005, cooldown2, eval1000이다. Map은 heldout NDRS sum, render는 heldout novel-light render L1을 감시한다. LR floor의 의미 있는 개선 없음20회로 단계를 종료한다. Map 종료 시 best-map을 읽고 render optimizer/scheduler를 새로 만든다.
 
-Render65k/total200k에서 운영 종료했으며 선정 best는64k, 마지막 LR은1e-6이다. 이 운영 종료를 수렴 증명으로 해석하지 않는다. 기존 NDRS합×1.02 선정보호와 validation 선정 규약을 유지했다. Test·실측으로 checkpoint를 선택하거나 임의 성분 허용폭을 추가하지 않았다.
+Map400k/render100k cap은 pause이며 강제 단계 전환이나 수렴 증명이 아니다. Validation 선정과 render NDR guard1.02를 유지한다. Train과 validation의 집계는 다르며 plot은 단계별 raw와100-update 평균을 따로 표시한다.
 
-새 실행은 별도 사용자 승인과 새 출력 경로가 필요하다. Exact resume는 model-only best가 아니라 전체 last 상태와 일치하는 runtime·환경·입력 identity를 요구한다. 수동 LR 변경·새 seed·smoke의 연구 학습 전환·자동 재시작을 허용하지 않는다. Memory/disk/error pause는 상태를 보존하고 조사한다.
-
-원본 [실험 계약](../artifacts/C_convergence_followup_20261019/EXPERIMENT_CONTRACT_KO.md)과 [후처리 계약](../artifacts/C_convergence_followup_20261019/POSTPROCESS_CONTRACT_KO.md)을 보존했다. 과거 전용 runner는 archive에 있으며 활성 CLI의 재개 조건은 [사용법](USAGE_KO.md)을 따른다.
+Exact resume는 full last checkpoint·일치하는 profile/runtime/환경/입력 identity를 요구한다. Model-only best, 새 seed, 수동 LR 변경, smoke의 연구 학습 전환, 자동 재시작은 허용하지 않는다. 마지막 저장 이후의 미저장 update는 복구하지 않는다.

@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import tempfile
+import time
 
 import torch
 
@@ -40,7 +41,15 @@ def atomic_write(path, writer, *, reserve_bytes = 0):
             writer(stream)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        # Windows readers can briefly prevent atomic replacement.
+        for attempt in range(20):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError:
+                if attempt == 19:
+                    raise
+                time.sleep(.05)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)

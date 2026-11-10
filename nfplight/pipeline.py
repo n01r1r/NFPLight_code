@@ -37,6 +37,8 @@ class TrainingPipeline:
         if train_groups & {row['group_id'] for row in self.val.records}:
             raise ValueError('train/validation source groups overlap')
         rendering = execution['scientific_settings']['rendering']
+        if rendering.get('observation_quantization', 'none') != profile['features'].get('synthetic_quantization', 'none'):
+            raise ValueError('synthetic observation quantization differs from config')
         if (rendering.get('precision') != 'float32' or rendering.get('amp') is not False
                 or rendering.get('tf32') is not False
                 or rendering['relation_version'] != profile['features']['relation']
@@ -74,7 +76,8 @@ class TrainingPipeline:
         weight = settings['loss']['render_weight']
         if not 0 < weight < float('inf'):
             raise ValueError('render weight must be finite and positive')
-        return maps + weight * rendered, {'ndrs_sum': float(maps.detach()), 'render_loss': float(rendered.detach()),
+        return maps + weight * rendered, {'valid_pixels': int(mask.sum()),
+            'ndrs_sum': float(maps.detach()), 'render_loss': float(rendered.detach()),
             **dict(zip(('normal_loss', 'diffuse_loss', 'roughness_loss', 'specular_loss'), [float(part.detach()) for part in parts]))}
 
     def evaluate(self, network, stage, step):

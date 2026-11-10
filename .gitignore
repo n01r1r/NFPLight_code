@@ -1,54 +1,33 @@
-# Local model outputs and resumable training state.
+# Local inputs, results and resumable experiment state.
+/data/
+/input_data/
 /checkpoints/
 /results/
-/data/fabric_native256_v1/
-*.pth
-*.pt
-*.ckpt
-
-# Local capture data and generated evaluation outputs.
-/input_data/raw_pairs/
-/input_data/capture_*/
-
-# Reports, caches, temporary files, and agent/harness state.
-/.cache/
-/.tmp_*
-/.work/
-/.fork-work/
-/.venv/
-/venv/
-/.claude/
-/.codex/
-/.agents/
-/.env
-/.env.*
-/harness/
+/artifacts/
+/archive/
+/archives/
 /report/
 /reports/
+/output/
+/.work/
+/.venv/
+/venv/
+/.env
+/.env.*
+/.codex/
+/.agents/
+/.claude/
+/.pytest_cache/
 __pycache__/
 *.py[cod]
 *.log
+*.pt
+*.pth
+*.ckpt
+!/pretrained/net_g_real.pth
+!/pretrained/net_g_syn.pth
 
-# Local experiment automation and scratch files.
-/run_*.sh
-/run_*.ps1
-/watch_*.ps1
-/supervise_*.py
-
-# Current FP32 numerical outputs and raw capture inputs.
-/artifacts/
-/data/*10cm30cm*/
-/.pytest_cache/
-
-/data/260818_174845_478/
-/data/260818_175005_078/
-/data/260923_141241_844/
-/data/260923_161825_503/
-/data/260930_152732_008/
-
-# Local browser profiles, audit scratch, and generated report copies.
-/_workspace/
-/tmp/
-/output/
-/graphify-out/
-/capture_processing/graphify-out/
+/MatSynth_PRIMA_Fabric/
+/work/
+/runs/
+.ipynb_checkpoints/
