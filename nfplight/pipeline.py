@@ -74,8 +74,11 @@ class TrainingPipeline:
         weight = settings['loss']['render_weight']
         if not 0 < weight < float('inf'):
             raise ValueError('render weight must be finite and positive')
-        return maps + weight * rendered, {'ndrs_sum': float(maps.detach()), 'render_loss': float(rendered.detach()),
+        metrics = {'ndrs_sum': float(maps.detach()), 'render_loss': float(rendered.detach()),
             **dict(zip(('normal_loss', 'diffuse_loss', 'roughness_loss', 'specular_loss'), [float(part.detach()) for part in parts]))}
+        if self.runtime.get('accumulation_steps', 1) > 1:
+            metrics['valid_pixels'] = int(mask.sum())
+        return maps + weight * rendered, metrics
 
     def evaluate(self, network, stage, step):
         started = time.perf_counter()

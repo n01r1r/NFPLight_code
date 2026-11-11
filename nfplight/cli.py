@@ -10,12 +10,11 @@ import torch
 import numpy as np
 import psutil
 
-from nfplight.checkpoint import read_config, load_payload, load_model, check_profile, decode
+from nfplight.checkpoint import read_config, load_payload, load_model, check_profile, decode, build_model
 from nfplight.features import Features
-from nfplight.network import NFPLight
 from nfplight.pipeline import TrainingPipeline
 from nfplight.storage import identity, output_lock, save_checkpoint, write_json
-from nfplight.training import Trainer
+from nfplight.training import Trainer, batch_contract
 
 CONFIGS = Path(__file__).resolve().parents[1] / 'configs'
 
@@ -79,6 +78,12 @@ def execution_from_config(args, profile, runtime):
     execution['scientific_settings']['backbone'] = {'width': net['dim'], 'encoder_blocks': net['encoder_depths'],
         'middle_blocks': net['middle_depth'], 'decoder_blocks': net['decoder_depths']}
     execution['policy']['dropout_probability'] = net['dropout']
+    if net.get('architecture') == 'nested':
+        rendering = execution['scientific_settings']['rendering']
+        if rendering.get('observation_quantization', 'none') != 'none':
+            raise ValueError('NAF U-Net++ training requires unquantized observations')
+        rendering['observation_quantization'] = 'none'
+        execution['policy'].update(arm = profile['profile'], middle_blocks = net['middle_depth'])
     execution.update(manifest = str(Path(args.manifest).resolve()), train = train, validation = val,
         purpose = 'smoke' if args.smoke_updates else 'training', package = 'nfplight.clean.v1')
     execution['file_identities'] = [identity(args.manifest)] + [identity(row['shard_path']) for row in train + val]
@@ -98,6 +103,10 @@ def validate_resume(payload, execution, profile, runtime, *, device):
     frozen_runtime = payload.get('clean_runtime')
     if frozen_runtime is None:
         frozen_runtime = read_json(CONFIGS / 'legacy_resume.json')
+    if batch_contract(runtime) != batch_contract(frozen_runtime):
+        raise ValueError('exact resume runtime mismatch: batching')
+    if frozen_runtime.get('validation_batch_size', 1) != 1:
+        raise ValueError('exact resume requires validation batch size 1')
     for key in ('batch_size', 'adam_betas', 'clip_norm', 'sampler_seed_offset', 'd4_seed_offset',
                 'augmentation_seed_offset', 'noise_seed_offset', 'crop_count', 'validation_crops', 'renderer', 'cpu_threads'):
         if runtime[key] != frozen_runtime[key]:
@@ -132,6 +141,9 @@ def train(args):
     if output.exists():
         raise FileExistsError('training/migration requires a new output directory')
     profile, runtime = read_config(args.config or CONFIGS / '7m_spatial.json'), read_json(args.runtime)
+    batch_contract(runtime)
+    if runtime.get('validation_batch_size', 1) != 1:
+        raise ValueError('this trainer evaluates one crop at a time')
     configure_runtime(runtime, args.device)
     if profile['features']['relation'] != 'spatial_inverse_square_v1':
         raise ValueError('training requires the current spatial relation contract')
@@ -157,7 +169,11 @@ def train(args):
     if str(args.device).startswith('cuda'):
         torch.cuda.manual_seed_all(execution['policy']['seed'])
     pipeline = TrainingPipeline(execution, profile, runtime, device = args.device)
-    network = NFPLight(**profile['network']).to(args.device)
+    if profile['network'].get('architecture') == 'nested':
+        with torch.device(args.device):
+            network = build_model(profile)
+    else:
+        network = build_model(profile).to(args.device)
     count = sum(parameter.numel() for parameter in network.parameters())
     if payload is not None and count != execution['policy']['parameters']:
         raise ValueError('parameter count differs from resumable checkpoint')

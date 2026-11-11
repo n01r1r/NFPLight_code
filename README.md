@@ -1,5 +1,7 @@
 # NFPLight
 
+[NAF U-Net++ 설정과 실행](docs/USAGE_KO.md#naf-u-net)
+
 Near/far 선형 RGB 쌍으로 N/D/R/S를 추정하는 FP32 모델·추론·학습 코어다. 작업 기준은 **main**, 기본 작업 폴더는 **C:/workspace/NFPLight_code**다. 기존 데이터·weight·보고서는 같은 위치에 보존했다.
 
 ## 시작

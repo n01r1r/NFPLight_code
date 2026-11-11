@@ -50,6 +50,12 @@ def state_dict(payload):
 
 
 def check_profile(payload, config):
+    frozen_profile = payload.get('clean_profile')
+    if frozen_profile is not None:
+        actual = frozen_profile['network'].get('architecture', 'nfplight')
+        expected = config['network'].get('architecture', 'nfplight')
+        if actual != expected:
+            raise ValueError('checkpoint/config network architecture conflict')
     scientific = payload.get('identity', {}).get('scientific_settings', {})
     rendering = scientific.get('rendering', {})
     for actual, expected, label in (
@@ -72,10 +78,24 @@ def check_profile(payload, config):
         raise ValueError('checkpoint requires unit normal decoding')
 
 
+def build_model(config):
+    settings = dict(config['network'])
+    architecture = settings.pop('architecture', 'nfplight')
+    if architecture == 'nfplight':
+        return NFPLight(**settings)
+    if architecture == 'nested':
+        if (config['features']['channels'] != 21 or config['decoder'] != 'unit_xyz'
+                or config['features'].get('synthetic_quantization', 'none') != 'none'):
+            raise ValueError('NAF U-Net++ requires 21-channel unquantized features and unit XYZ')
+        from nfplight.nested_model import NestedModel
+        return NestedModel(**settings)
+    raise ValueError(f'unknown network architecture: {architecture}')
+
+
 def load_model(path, config, *, device):
     payload = load_payload(path)
     check_profile(payload, config)
-    network = NFPLight(**config['network'])
+    network = build_model(config)
     network.load_state_dict(state_dict(payload), strict = True)
     return network.to(device = device, dtype = torch.float32).eval()
 

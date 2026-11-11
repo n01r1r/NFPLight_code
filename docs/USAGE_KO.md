@@ -134,3 +134,15 @@ python tests/verify_capture_compatibility.py --source-root <기존data> --prepar
 ## 현재 main과 C 최종 weight
 
 C 연장 best64k의 CPU/CUDA FP32 호환성을 확인하고 clean core를 main으로 승격했다. C:/workspace/NFPLight_code도 main으로 통일했고 불필요한 branch를 정리했다. [검증 결과·archive·복구](C_BEST64K_MAIN_HANDOFF.md)를 따른다.
+
+
+## NAF U-Net++
+
+`configs/nested_32_noquant.json`으로 dim32 NAF U-Net++를 선택한다. 최종 출력에만 loss를 적용한다. 입력은 무양자화 FP32이며 학습 gain은 9다. 실측 추론은 기존 author_patch20 gain을 사용한다. 기존 21채널 입력과 N/D/R/S 출력 순서를 사용한다. U-Net++ weight는 각자 준비한다.
+
+```powershell
+python -m nfplight infer --config configs/nested_32_noquant.json --checkpoint <nested-weight.pt> --input <pair.pt> --out <새prediction.pt> --device cuda
+python -m nfplight train --config configs/nested_32_noquant.json --runtime configs/runtime_accum4.json --manifest <manifest.jsonl> --out <새학습폴더> --device cuda
+```
+
+위 학습 명령은 별도 승인된 새 실행용이다. Micro1×accum4로 유효 batch4를 구성하며, 유효 픽셀 수로 loss를 가중해 optimizer를 한 번 갱신한다. Validation은 crop 하나씩 평가한다. 이어 학습은 동일 모델·환경·데이터·micro 분할과 validation batch1이 필요하다.
